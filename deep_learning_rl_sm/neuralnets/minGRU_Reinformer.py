@@ -32,7 +32,7 @@ class minGRU_Reinformer(nn.Module):
         self.num_inputs = 3
         #seq_len_in = self.num_inputs * context_len
         min_gru_blocks = [ #Consider trying BlockV2
-            BlockV1(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, seq_len = seq_len)
+            BlockV2(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, seq_len = seq_len)
             for _ in range(n_blocks)
         ]
         self.min_gru_stacked = nn.Sequential(*min_gru_blocks)
