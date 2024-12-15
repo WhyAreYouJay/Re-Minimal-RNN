@@ -35,7 +35,7 @@ class minGRU(Module):
         super().__init__()
         self.dim=dim
         self.exp_dim = int(dim * expansion_factor)
-        self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim)))
+        self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim),device = seq_len))
         self.f = Linear(dim, 2*self.exp_dim, bias=False)
         self.down_projection = Linear(self.exp_dim,dim, bias=False) if expansion_factor != 1 else nn.Identity()
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
