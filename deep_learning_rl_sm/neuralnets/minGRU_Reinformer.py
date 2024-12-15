@@ -35,7 +35,7 @@ class minGRU_Reinformer(nn.Module):
             BlockV1(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, seq_len = seq_len)
             for _ in range(n_blocks)
         ]
-        self.min_gru_stacked = nn.Sequential(*min_gru_blocks)
+        self.min_gru_stacked = BlockV1(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, seq_len = seq_len)#nn.Sequential(*min_gru_blocks)
 
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim)
