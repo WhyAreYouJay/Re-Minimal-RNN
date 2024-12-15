@@ -76,7 +76,7 @@ if __name__ == "__main__":
             scale = 5000
             env_name = "HalfCheetah"
     observations, acts,rewards, rew_to_gos, dones, traj_lengths,reward_sum = benchmark_data(fp)
-    environment = gym.make(args.env + "-v2", max_episode_steps=args.max_eval_ep_len)
+    environment = gym.make(env_name + "-v2", max_episode_steps=args.max_eval_ep_len)
     def get_normalized_score(score, env = env):
         return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE)
     def evaluator(model):
