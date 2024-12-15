@@ -31,12 +31,12 @@ class Conv1dLayer(Module):
         return x.transpose(1, 2) # b d n -> b n d
 
 class minGRU(Module):
-    def __init__(self, dim, expansion_factor = 1.):
+    def __init__(self, dim,batch_size, seq_len, expansion_factor = 1.):
         super().__init__()
         self.dim=dim
         self.exp_dim = int(dim * expansion_factor)
-        self.f_hidden = Linear(dim, self.exp_dim, bias=False)
-        self.f_z = Linear(dim, self.exp_dim, bias=False)
+        self.log_h = log_g(torch.zeros((batch_size, 1 + seq_len, self.exp_dim)))
+        self.f = Linear(dim, 2*self.exp_dim, bias=False)
         self.down_projection = Linear(self.exp_dim,dim, bias=False) if expansion_factor != 1 else nn.Identity()
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
@@ -59,18 +59,15 @@ class minGRU(Module):
         # by e.g. converting to log-values, summing and then exponentiating we achieve the same result as
         # multiplying the original values but with better numerical stability
 
-    def forward(self, x, h0=None):
+    def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, seq_len, input_size)
         # h_0: (batch_size, 1, hidden_size)
-        h0 = torch.zeros(x.shape[0], 1, self.exp_dim, device=x.device)
-        
-        k = self.f_z(x)
+        k,h_x = self.f(x).chunk(2,dim = -1)
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
-        log_h_0 = log_g(h0)
-        log_tilde_h = log_g(self.f_hidden(x))
-        h = parallel_scan_log(log_coeffs, torch.cat([log_h_0, log_z + log_tilde_h], dim=1))
-        return self.down_projection(h)
+        log_tilde_h = log_g(h_x)
+        self.log_h[:,1:,:] = log_tilde_h + log_z
+        return self.down_projection(parallel_scan_log(log_coeffs, self.log_h))
     
 class CausalDepthWiseConv1d(Module):
     def __init__(self, dim, kernel_size):
@@ -89,7 +86,7 @@ class CausalDepthWiseConv1d(Module):
     
 class BlockV1(Module):
     """This Version is what I understand to be one block in the minGRU architecture"""
-    def __init__(self,dim,n_layers,drop_p,kernel_size,expansion_factor, mult=4): 
+    def __init__(self,dim,n_layers,drop_p,kernel_size,expansion_factor,batch_size,seq_len, mult=4): 
         """This Version is what I understand to be one block in the minGRU architecture"""
         super().__init__()
         self.n_layers = n_layers
@@ -97,7 +94,7 @@ class BlockV1(Module):
         self.ln1 = torch.nn.LayerNorm(dim)
         self.mingru_layers =[]
         for _ in range(n_layers):
-            self.mingru_layers += [minGRU(dim, expansion_factor), torch.nn.LayerNorm(dim)]
+            self.mingru_layers += [minGRU(dim,batch_size,seq_len,expansion_factor), torch.nn.LayerNorm(dim)]
         self.mod_l = nn.Sequential(*self.mingru_layers)
         self.ln2 = torch.nn.LayerNorm(dim)
         self.mlp = nn.Sequential(
@@ -107,7 +104,7 @@ class BlockV1(Module):
             nn.Dropout(drop_p),
         )
     def forward(self,x): 
-        x = self.conv(x) + x #Residuals!
+        x = self.conv(x)
         minGRU_input = self.ln1(x)
         for i in range(self.n_layers):
             x = self.mingru_layers[2*i](minGRU_input) + x #Residuals!
@@ -119,15 +116,16 @@ class BlockV1(Module):
 
 class BlockV2(Module):
     """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
-    def __init__(self,dim,n_layers,drop_p,kernel_size,expansion_factor, mult=4):
+    def __init__(self,dim,n_layers,drop_p,kernel_size,expansion_factor,batch_size,seq_len, mult=4):
         """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
         super().__init__()
         self.seq = []
         self.module_list = []
+        self.min_grus = []
         for i in range(n_layers):
             self.conv = CausalDepthWiseConv1d(dim, kernel_size) #Conv1dLayer(dim,kernel_size)
             self.ln1 = torch.nn.LayerNorm(dim)
-            self.min_gru = minGRU(dim, expansion_factor)
+            self.min_gru = minGRU(dim,batch_size,seq_len,expansion_factor)
             self.ln2 = torch.nn.LayerNorm(dim)
             self.mlp = nn.Sequential(
                 nn.Linear(dim, mult * dim),
@@ -135,13 +133,19 @@ class BlockV2(Module):
                 nn.Linear(mult * dim, dim),
                 nn.Dropout(drop_p),
             )
+            self.min_grus.append(self.min_gru)
             self.seq = self.seq + [self.conv, self.ln1, self.min_gru, self.ln2, self.mlp]
-            self.module_list.append((self.conv, self.ln1, self.min_gru, self.ln2, self.mlp))
-        self.seq = nn.Sequential(*self.seq)
+        self.st = nn.Sequential(self.seq[:2])
+        self.end = nn.Sequential(self.seq[-2:])
+        self.mid_list = []
+        for i in range(n_layers -1):
+            self.mid_list.append(nn.Sequential(self.seq[3 + 5*i:6 + 5*i]))
+        self.seq_nn = nn.Sequential(*self.seq)
             
-    def forward(self,x): 
-        for conv, ln1, mingru, ln2, mlp in self.module_list:
-            x = conv(x) + x
-            x = mingru(ln1(x)) + x
-            x = mlp(ln2(x)) + x
-        return x
+    def forward(self,x):
+        x = self.st(x)
+        x = self.min_grus[0](x) + x
+        for i,s in enumerate(self.mid_list):
+            x = s(x)
+            x = self.min_grus[i+1](x) + x
+        return self.end(x)
