@@ -1,5 +1,5 @@
 import argparse
-import gymnasium as gym
+import gym
 import numpy as np
 import torch
 import wandb
