@@ -100,7 +100,7 @@ def Reinformer_eval(
                 episode_return += running_reward
                 episode_length += 1
                 # terminate
-                if done:
+                if done or t >= max_test_ep_len:
                     returns.append(episode_return)
                     lengths.append(episode_length)
                     break
