@@ -102,7 +102,7 @@ if __name__ == "__main__":
     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, n_blocks=args["n_blocks"],
                             h_dim=args["embed_dim"], n_layers=args["n_layers"],
                             drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                            target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], seq_len = args["max_eval_ep_len"])
+                            target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], seq_len = device)
     model=model.to(device)
     optimizer = Lamb(
         model.parameters(),
