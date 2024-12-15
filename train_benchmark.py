@@ -100,9 +100,9 @@ if __name__ == "__main__":
     args = vars(args)
     target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, n_blocks=args["n_blocks"],
-                            h_dim=args["embed_dim"], context_len=args["K"], n_layers=args["n_layers"],
+                            h_dim=args["embed_dim"], n_layers=args["n_layers"],
                             drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                            target_entropy=target_entropy, discrete=args["env_discrete"])
+                            target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], seq_len = args["max_eval_ep_len"])
     model=model.to(device)
     optimizer = Lamb(
         model.parameters(),
