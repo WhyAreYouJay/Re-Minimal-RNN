@@ -135,11 +135,11 @@ class BlockV2(Module):
             )
             self.min_grus.append(self.min_gru)
             self.seq = self.seq + [self.conv, self.ln1, self.min_gru, self.ln2, self.mlp]
-        self.st = nn.Sequential(self.seq[:2])
-        self.end = nn.Sequential(self.seq[-2:])
+        self.st = nn.Sequential(*self.seq[:2])
+        self.end = nn.Sequential(*self.seq[-2:])
         self.mid_list = []
         for i in range(n_layers -1):
-            self.mid_list.append(nn.Sequential(self.seq[3 + 5*i:6 + 5*i]))
+            self.mid_list.append(nn.Sequential(*self.seq[3 + 5*i:6 + 5*i]))
         self.seq_nn = nn.Sequential(*self.seq)
             
     def forward(self,x):
