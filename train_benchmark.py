@@ -68,8 +68,13 @@ if __name__ == "__main__":
     fp = download_dataset_from_url(env)
     max_ep_len = 1000 #Same for all 3 envs (Hopper, Walker, HalfCheetah)
     scale = 1000 # Normalization for rewards/returns
+    if args.env in ["walker2d"]:
+            env_name = "Walker2D"
+    if args.env in ["hopper"]:
+            env_name = "Hopper"
     if args.env in ["halfcheetah"]:
             scale = 5000
+            env_name = "HalfCheetah"
     observations, acts,rewards, rew_to_gos, dones, traj_lengths,reward_sum = benchmark_data(fp)
     environment = gym.make(args.env + "-v2", max_episode_steps=args.max_eval_ep_len)
     def get_normalized_score(score, env = env):
