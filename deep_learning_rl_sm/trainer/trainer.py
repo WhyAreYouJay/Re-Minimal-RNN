@@ -320,9 +320,11 @@ class Trainer:
 
         # training -----------------------------------------------
         self.model.train()
-        for _ in range(num_steps):
+        for i in range(num_steps):
             train_loss = self.train_step_benchmark()
             train_losses.append(train_loss)
+            if i%50 == 0:
+                print(f"Iteration {i+1}")
             if self.scheduler is not None:
                 self.scheduler.step()
 
