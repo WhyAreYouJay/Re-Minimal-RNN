@@ -65,6 +65,13 @@ class minGRU(Module):
         # (i.e. long sequences more likely to result in numerical underflow)
         # by e.g. converting to log-values, summing and then exponentiating we achieve the same result as
         # multiplying the original values but with better numerical stability
+    
+    def eval_mode(self):
+        self.log_h = log_g(torch.zeros((1, 1, self.exp_dim), device = self.log_h.device))
+        
+    def train_mode(self):
+        self.log_h = log_g(torch.zeros((self.batch_size, 1, self.exp_dim), device = self.log_h.device))
+    
     @torch.compile
     def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, device, input_size)
