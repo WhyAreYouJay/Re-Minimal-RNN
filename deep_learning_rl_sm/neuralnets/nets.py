@@ -13,7 +13,7 @@ class Actor(nn.Module):
         self.log_std_min = -20
         self.log_std_max = 2
         self.categorical_dist = discrete
-
+    @torch.compile()
     def forward(self, x):
         action_mean = torch.tanh(self.mu(x))
         action_std = torch.exp(self.log_std(x).clamp(self.log_std_min, self.log_std_max))
