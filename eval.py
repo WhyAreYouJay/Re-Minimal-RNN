@@ -72,7 +72,7 @@ def Reinformer_eval(
                         returns_to_go[:, t - context_len + 1 : t + 1],
                     )
                     rtg = rtg_preds[0, -1].detach()
-                print(f"RTG {t} : {rtg[0,t]}")
+                print(f"RTG {t} : {rtg}")
                 # add rtg in placeholder
                 returns_to_go[0, t] = rtg
                 # take action by model
