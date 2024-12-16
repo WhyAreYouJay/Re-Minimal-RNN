@@ -6,13 +6,14 @@ from torch import nn
 def g(x):
     return torch.where(x >= 0, x + 0.5, torch.sigmoid(x))
 
-#@torch.compile
+@torch.compile
 def log_g(x):
+    x_neg = x < 0
     lg = (F.relu(x) + 0.5).log()
-    lg[x < 0] = -F.softplus(-x)[x < 0]
+    lg[x_neg] = -F.softplus(-x)[x_neg]
     return lg
 
-#@torch.compile
+@torch.compile
 def parallel_scan_log(log_coefficients, log_values):
     # log_coefficients: (batch_size, device, input_size)
     # log_values: (batch_size, device + 1, input_size)
@@ -62,7 +63,7 @@ class minGRU(Module):
         # (i.e. long sequences more likely to result in numerical underflow)
         # by e.g. converting to log-values, summing and then exponentiating we achieve the same result as
         # multiplying the original values but with better numerical stability
-    #@torch.compile
+    @torch.compile
     def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, device, input_size)
         # h_0: (batch_size, 1, hidden_size)
@@ -81,7 +82,7 @@ class CausalDepthWiseConv1d(Module):
             nn.Conv1d(dim, dim, kernel_size = kernel_size, groups = dim),
             nn.Conv1d(dim, dim, kernel_size = 1)
         )
-    #@torch.compile
+    @torch.compile
     def forward(self, x):
         x = x.transpose(1, 2) # b n d -> b d n
         x = F.pad(x, (self.kernel_size - 1, 0), value = 0.)
@@ -172,7 +173,7 @@ class BlockV3(Module):
                 nn.Linear(mult * dim, dim),
                 nn.Dropout(drop_p),
             )
-    #@torch.compile
+    @torch.compile
     def forward(self,x):
         residual = x
         x = self.conv(x) + residual
