@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deep_learning_rl_sm.neuralnets.minGRU import BlockV1, BlockV2, BlockV3
+from deep_learning_rl_sm.neuralnets.minGRU import BlockV3
 from deep_learning_rl_sm.neuralnets.nets import Actor
 
 
@@ -38,20 +38,20 @@ class minGRU_Reinformer(nn.Module):
         self.min_gru_stacked = nn.Sequential(*min_gru_blocks)
         self.min_gru_stacked.compile()
         # projection heads (project to embedding) /same as paper
-        self.embed_ln = nn.LayerNorm(self.h_dim)
-        self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0)
-        self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim)
-        self.embed_rtg = nn.Linear(1, self.h_dim)
-        self.embed_action = nn.Linear(self.a_dim, self.h_dim)
+        self.embed_ln = nn.LayerNorm(self.h_dim, device = device)
+        self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0, device = device)
+        self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim, device = device)
+        self.embed_rtg = nn.Linear(1, self.h_dim, device = device)
+        self.embed_action = nn.Linear(self.a_dim, self.h_dim, device = device)
 
         # prediction heads /same as paper
-        self.predict_rtg = nn.Linear(self.h_dim, 1)
+        self.predict_rtg = nn.Linear(self.h_dim, 1, device = device)
         # stochastic action (output is distribution)
-        self.predict_action = Actor(self.a_dim, self.h_dim, discrete=discrete)
+        self.predict_action = Actor(self.a_dim, self.h_dim, discrete=discrete, device = device)
         #self.predict_state = nn.Linear(self.h_dim, np.prod(self.s_dim))
 
         # For entropy /same as paper
-        self.log_tmp = torch.tensor(np.log(init_tmp))
+        self.log_tmp = torch.tensor(np.log(init_tmp), device = device)
         self.log_tmp.requires_grad = True
         self.target_entropy = target_entropy
                 
