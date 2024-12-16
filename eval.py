@@ -46,7 +46,7 @@ def Reinformer_eval(
             )
 
             # init episode
-            running_state = env.reset()
+            running_state = env.reset()[0]
             episode_return = 0
             episode_length = 0
 
