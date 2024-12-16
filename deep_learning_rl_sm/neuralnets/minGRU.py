@@ -30,6 +30,7 @@ class Conv1dLayer(Module):
         super().__init__()
         self.kernel_size = kernel_size
         self.net = nn.Conv1d(dim, dim, kernel_size = kernel_size, groups = dim)
+    @torch.compile()
     def forward(self, x):
         x = x.transpose(1, 2) # b n d -> b d n
         x = F.pad(x, (self.kernel_size - 1, 0), value = 0.)
@@ -41,7 +42,6 @@ class minGRU(Module):
         super().__init__()
         self.dim=dim
         self.exp_dim = int(dim * expansion_factor)
-        self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.f = Linear(dim, 2*self.exp_dim, bias=False)
         self.down_projection = Linear(self.exp_dim,dim, bias=False) if expansion_factor != 1 else nn.Identity()
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
@@ -106,7 +106,7 @@ class BlockV1(Module):
         self.mod_l = nn.Sequential(*self.mingru_layers)
         self.ln2 = torch.nn.LayerNorm(dim)
         self.mlp = nn.Sequential(
-            nn.Linear(dim, mult * dim),
+            nn.Linear(dim, mult * dim, bias=False),
             nn.ReLU(),#Reinformer uses GELU
             nn.Linear(mult * dim, dim),
             nn.Dropout(drop_p),
@@ -169,9 +169,9 @@ class BlockV3(Module):
         self.min_gru = minGRU(dim,batch_size,device,expansion_factor)
         self.ln2 = torch.nn.LayerNorm(dim)
         self.mlp = nn.Sequential(
-                nn.Linear(dim, mult * dim),
+                nn.Linear(dim, mult * dim, bias=False),
                 nn.ReLU(),#Reinformer uses GELU
-                nn.Linear(mult * dim, dim),
+                nn.Linear(mult * dim, dim, bias=False),
                 nn.Dropout(drop_p),
             )
     @torch.compile
