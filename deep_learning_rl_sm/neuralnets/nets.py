@@ -15,9 +15,13 @@ class Actor(nn.Module):
         self.categorical_dist = discrete
 
     def forward(self, x):
-        action_mean = torch.softmax(self.mu(x), dim=-1) if self.categorical_dist else torch.tanh(self.mu(x))
-        action_std = None if self.categorical_dist else torch.exp(
-            self.log_std(x).clamp(self.log_std_min, self.log_std_max))
-        return torch_dist.Categorical(action_mean) if self.categorical_dist else torch_dist.Normal(action_mean,
+        action_mean = torch.tanh(self.mu(x))
+        action_std = torch.exp(self.log_std(x).clamp(self.log_std_min, self.log_std_max))
+        return torch_dist.Normal(action_mean,
                                                                                                    action_std)
         # return torch_dist.Normal(action_mean, action_std)
+    
+    def forward_cat(self, x):
+        action_mean = torch.softmax(self.mu(x), dim=-1)
+        action_std = None
+        return torch_dist.Categorical(action_mean)
