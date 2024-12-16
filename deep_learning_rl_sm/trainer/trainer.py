@@ -389,7 +389,7 @@ class Trainer:
                     returns_to_go,
                     traj_mask,
                 )
-
+    @torch.compile()
     def train_step_benchmark(self):
             timesteps, states, actions, rtg, traj_mask = self.get_next()
             timesteps = timesteps.to(self.device)      # B x T
