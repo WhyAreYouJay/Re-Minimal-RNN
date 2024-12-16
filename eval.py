@@ -54,6 +54,7 @@ def Reinformer_eval(
                 # add state in placeholder and normalize
                 states[0, t] = torch.from_numpy(running_state).to(device)
                 states[0, t] = (states[0, t] - state_mean) / state_std
+                print(f"State {t} : {states[0,t]})
                 # predict rtg by model
                 if t < context_len:
                     rtg_preds, _ = model.forward(
@@ -71,6 +72,7 @@ def Reinformer_eval(
                         returns_to_go[:, t - context_len + 1 : t + 1],
                     )
                     rtg = rtg_preds[0, -1].detach()
+                print(f"RTG {t} : {rtg[0,t]})
                 # add rtg in placeholder
                 returns_to_go[0, t] = rtg
                 # take action by model
@@ -96,6 +98,8 @@ def Reinformer_eval(
                 )
                 # add action in placeholder
                 actions[0, t] = act
+                print(f"Action {t} : {actions[0,t]})
+                print(f"Reward rec. {t} : {running_reward})
                 # calculate return and episode length
                 episode_return += running_reward
                 episode_length += 1
