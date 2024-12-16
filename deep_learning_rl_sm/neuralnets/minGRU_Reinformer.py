@@ -35,8 +35,6 @@ class minGRU_Reinformer(nn.Module):
             BlockV3(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, device = device)
             for _ in range(n_layers)
         ]
-        for b in min_gru_blocks:
-            b.compile()
         self.min_gru_stacked = nn.Sequential(*min_gru_blocks)
         self.min_gru_stacked.compile()
         # projection heads (project to embedding) /same as paper
@@ -57,7 +55,6 @@ class minGRU_Reinformer(nn.Module):
         self.log_tmp.requires_grad = True
         self.target_entropy = target_entropy
 
-    @torch.compile()
     def forward(
             self,
             timesteps,
