@@ -91,7 +91,7 @@ def Reinformer_eval(
                     )
                     act = act_dist_preds.mean.reshape(eval_batch_size, -1, act_dim)[0, -1].detach()
                 # env step
-                running_state, running_reward, done, _ = env.step(
+                running_state, running_reward, done, _, _ = env.step(
                     act.cpu().numpy()
                 )
                 # add action in placeholder
