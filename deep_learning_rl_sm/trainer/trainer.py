@@ -402,8 +402,7 @@ class Trainer:
             # model forward ----------------------------------------------
             (
                 returns_to_go_preds,
-                actions_dist_preds,
-                _,
+                actions_dist_preds
             ) = self.model.forward(
                 timesteps=timesteps,
                 states=states,
