@@ -56,7 +56,7 @@ def Reinformer_eval(
                 states[0, t] = (states[0, t] - state_mean) / state_std
                 # predict rtg by model
                 if t < context_len:
-                    rtg_preds, _, _ = model.forward(
+                    rtg_preds, _ = model.forward(
                         timesteps[:, :context_len],
                         states[:, :context_len],
                         actions[:, :context_len],
