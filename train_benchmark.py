@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument("--env", default="halfcheetah")
     parser.add_argument("--env_discrete", type=bool, default=False)
     parser.add_argument("--dataset",choices=["medium","medium_expert","medium_replay"], type=str, default="medium")
-    parser.add_argument("--num_eval_ep", type=int, default=10)
+    parser.add_argument("--num_eval_ep", type=int, default=3)
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str, default="deep_learning_rl_sm/benchmarks/data/halfcheetah_medium_expert-v2.hdf5")
     parser.add_argument("--n_blocks", type=int, default=4)
