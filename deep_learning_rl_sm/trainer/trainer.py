@@ -11,12 +11,13 @@ from torch.utils.data import DataLoader
 
 class Trainer:
     def __init__(self, model : nn.Module, optimizer: Optimizer, scheduler, batch_size: int = 32,
-                 learning_rate: float = 1e-3, num_epochs: int = 10, device=None,dataset=None,get_batch = None,parsed_args=None):
+                 learning_rate: float = 1e-3, num_epochs: int = 10, device=None,dataset=None,data_loader = None,parsed_args=None):
         self.tau = parsed_args["tau"]
         self.grad_norm = parsed_args["grad_norm"]
         self.model = model.to(device)
         self.dataset = dataset
-        self.get_batch = get_batch
+        self.data_loader = data_loader
+        self.data_iter = iter(data_loader)
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
@@ -321,10 +322,10 @@ class Trainer:
         # training -----------------------------------------------
         self.model.train()
         for i in range(num_steps):
+            if i%50 == 0:
+                print(f"Iteration {i}, time: {time.time() - train_start}")
             train_loss = self.train_step_benchmark()
             train_losses.append(train_loss)
-            if i%50 == 0:
-                print(f"Iteration {i+1}")
             if self.scheduler is not None:
                 self.scheduler.step()
 
@@ -361,10 +362,43 @@ class Trainer:
                 print(f'{k}: {v}')
 
         return logs
+    
+    def get_next(self):
+        try:
+                (
+                    timesteps,
+                    states,
+                    actions,
+                    returns_to_go,
+                    traj_mask,
+                ) = next(self.data_iter)
+        except StopIteration:
+                del self.data_iter
+                self.data_iter = iter(self.data_loader)
+                (
+                    timesteps,
+                    states,
+                    actions,
+                    returns_to_go,
+                    traj_mask,
+                ) = next(self.data_iter)
+        return (
+                    timesteps,
+                    states,
+                    actions,
+                    returns_to_go,
+                    traj_mask,
+                )
 
     def train_step_benchmark(self):
-            states, actions, rewards, dones, rtg, timesteps, traj_mask = self.get_batch(self.batch_size)
-            self.model = self.model.to(self.device)
+            timesteps, states, actions, rtg, traj_mask = self.get_next()
+            timesteps = timesteps.to(self.device)      # B x T
+            states = states.to(self.device)            # B x T x state_dim
+            actions = actions.to(self.device)          # B x T x act_dim
+            rtg = rtg.to(self.device).unsqueeze(
+                dim=-1
+            )                                       # B x T x 1
+            traj_mask = traj_mask.to(self.device)      # B x T
             # model forward ----------------------------------------------
             (
                 returns_to_go_preds,
@@ -376,7 +410,6 @@ class Trainer:
                 actions=actions,
                 returns_to_go=rtg,
             )
-
             returns_to_go_target = torch.clone(rtg).view(
                 -1, 1
             )[
