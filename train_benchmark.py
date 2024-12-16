@@ -144,7 +144,9 @@ if __name__ == "__main__":
         shuffle=True,
         pin_memory=True,
         drop_last=True,
-        num_workers = 8,
+        num_workers = 2,
+        persistent_workers = True,
+        prefetch_factor = 1
     )
     trainer = Trainer(model=model, data_loader = traj_data_loader, optimizer=optimizer, scheduler=scheduler, parsed_args=args, batch_size=args["batch_size"], device=device)
     del model, traj_data_loader
