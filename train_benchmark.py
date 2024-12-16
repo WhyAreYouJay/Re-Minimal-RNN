@@ -1,3 +1,7 @@
+import warnings
+warnings.filterwarnings("ignore")
+def warn(*args, **kwargs):
+    pass
 import argparse
 import gymnasium as gym
 import numpy as np
