@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deep_learning_rl_sm.neuralnets.minGRU import BlockV1, BlockV2
+from deep_learning_rl_sm.neuralnets.minGRU import BlockV1, BlockV2, BlockV3
 from deep_learning_rl_sm.neuralnets.nets import Actor
 
 
@@ -18,10 +18,10 @@ class minGRU_Reinformer(nn.Module):
             target_entropy,
             discrete,
             batch_size,
-            seq_len,
+            device,
             max_timestep=4096,
             expansion_factor = 1.5,
-            kernel_size = 3):
+            kernel_size = 4):
         super().__init__()
         self.num_actions = 7
         self.a_dim = act_dim if not discrete else self.num_actions
@@ -32,10 +32,12 @@ class minGRU_Reinformer(nn.Module):
         self.num_inputs = 3
         #seq_len_in = self.num_inputs * context_len
         min_gru_blocks = [ #Consider trying BlockV2
-            BlockV1(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, seq_len = seq_len)
-            for _ in range(n_blocks)
+            BlockV3(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, device = device)
+            for _ in range(n_layers)
         ]
-        self.min_gru_stacked = BlockV1(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, seq_len = seq_len)#nn.Sequential(*min_gru_blocks)
+        for mgb in min_gru_blocks:
+            pass#mgb.compile()
+        self.min_gru_stacked = nn.Sequential(*min_gru_blocks)
 
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim)
@@ -48,7 +50,7 @@ class minGRU_Reinformer(nn.Module):
         self.predict_rtg = nn.Linear(self.h_dim, 1)
         # stochastic action (output is distribution)
         self.predict_action = Actor(self.a_dim, self.h_dim, discrete=discrete)
-        self.predict_state = nn.Linear(self.h_dim, np.prod(self.s_dim))
+        #self.predict_state = nn.Linear(self.h_dim, np.prod(self.s_dim))
 
         # For entropy /same as paper
         self.log_tmp = torch.tensor(np.log(init_tmp))
@@ -106,7 +108,6 @@ class minGRU_Reinformer(nn.Module):
         rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
         action_dist_preds = self.predict_action(h[:, 1])  # predict action given s, R
         #state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
-
         return rtg_preds, action_dist_preds, None
 
     def temp(self):
