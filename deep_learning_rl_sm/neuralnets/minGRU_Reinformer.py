@@ -42,9 +42,10 @@ class minGRU_Reinformer(nn.Module):
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim)
         self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0)
-        self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim)
+        """self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim)
         self.embed_rtg = nn.Linear(1, self.h_dim)
-        self.embed_action = nn.Linear(self.a_dim, self.h_dim)
+        self.embed_action = nn.Linear(self.a_dim, self.h_dim)"""
+        self.embed =  nn.Linear(self.a_dim + np.prod(self.s_dim) + 1, self.h_dim)
 
         # prediction heads /same as paper
         self.predict_rtg = nn.Linear(self.h_dim, 1)
@@ -70,14 +71,17 @@ class minGRU_Reinformer(nn.Module):
         # print("embed_t dim: ", embd_t.shape)
         # time embeddings ≈ pos embeddings
         # add time embedding to each embedding below for temporal context
-        embd_s = self.embed_state(states) + embd_t
+        """embd_s = self.embed_state(states) + embd_t
         embd_a = self.embed_action(actions) + embd_t
         # print(self.embed_rtg(returns_to_go).shape)
-        embd_rtg = self.embed_rtg(returns_to_go) + embd_t
-
+        embd_rtg = self.embed_rtg(returns_to_go) + embd_t"""
+        h = self.embed(torch.cat([states,actions,returns_to_go])) + torch.cat([embd_t,embd_t,embd_t])
         # stack states, RTGs, and actions and reshape sequence as
         # (s_0, R_0, a_0, s_1, R_1, a_1, s_2, R_2, a_2 ...)
-        h = (
+        h = h.permute(0, 2, 1, 3).reshape(B, self.num_inputs * T, self.h_dim)
+        # stack states, RTGs, and actions and reshape sequence as
+        # (s_0, R_0, a_0, s_1, R_1, a_1, s_2, R_2, a_2 ...)
+        """h = (
             torch.stack(
                 (
                     embd_s,
@@ -88,7 +92,7 @@ class minGRU_Reinformer(nn.Module):
             )
             .permute(0, 2, 1, 3)
             .reshape(B, self.num_inputs * T, self.h_dim)
-        )
+        )"""
 
         h = self.embed_ln(h)
         # print("h shape: ", h.shape)
