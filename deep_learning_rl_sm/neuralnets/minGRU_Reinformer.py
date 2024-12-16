@@ -45,7 +45,7 @@ class minGRU_Reinformer(nn.Module):
         """self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim)
         self.embed_rtg = nn.Linear(1, self.h_dim)
         self.embed_action = nn.Linear(self.a_dim, self.h_dim)"""
-        self.embed =  nn.Linear(self.a_dim + np.prod(self.s_dim) + 1, self.h_dim)
+        self.embed =  nn.Linear(self.a_dim + np.prod(self.s_dim) + 1, 3*self.h_dim)
 
         # prediction heads /same as paper
         self.predict_rtg = nn.Linear(self.h_dim, 1)
@@ -57,6 +57,7 @@ class minGRU_Reinformer(nn.Module):
         self.log_tmp = torch.tensor(np.log(init_tmp))
         self.log_tmp.requires_grad = True
         self.target_entropy = target_entropy
+                
     @torch.compile()
     def forward(
             self,
@@ -75,7 +76,7 @@ class minGRU_Reinformer(nn.Module):
         embd_a = self.embed_action(actions) + embd_t
         # print(self.embed_rtg(returns_to_go).shape)
         embd_rtg = self.embed_rtg(returns_to_go) + embd_t"""
-        h = self.embed(torch.cat([states,actions,returns_to_go])) + torch.cat([embd_t,embd_t,embd_t])
+        h = self.embed(torch.cat([states,actions,returns_to_go], dim = -1)) + torch.cat([embd_t,embd_t,embd_t])
         # stack states, RTGs, and actions and reshape sequence as
         # (s_0, R_0, a_0, s_1, R_1, a_1, s_2, R_2, a_2 ...)
         h = h.permute(0, 2, 1, 3).reshape(B, self.num_inputs * T, self.h_dim)
