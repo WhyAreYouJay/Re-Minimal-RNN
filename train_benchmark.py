@@ -124,7 +124,7 @@ if __name__ == "__main__":
                             drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
                             target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], device=device, max_timestep=max_ep_len)
     model=model.to(device)
-    #torch.compile(model = model, mode="max-autotune")
+    torch.compile(model = model, mode="max-autotune")
     optimizer = Lamb(
         model.parameters(),
         lr=args["lr"],
