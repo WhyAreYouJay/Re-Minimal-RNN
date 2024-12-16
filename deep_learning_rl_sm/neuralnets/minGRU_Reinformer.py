@@ -36,7 +36,7 @@ class minGRU_Reinformer(nn.Module):
             for _ in range(n_layers)
         ]
         for mgb in min_gru_blocks:
-            pass#mgb.compile()
+            mgb.compile()
         self.min_gru_stacked = nn.Sequential(*min_gru_blocks)
 
         # projection heads (project to embedding) /same as paper
