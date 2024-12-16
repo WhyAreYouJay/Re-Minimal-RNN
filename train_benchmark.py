@@ -160,7 +160,9 @@ if __name__ == "__main__":
             for b in trainer.model.blocks:
                 b.min_gru.eval_mode()
             d4rl_norm_scores.append(evaluator(trainer.model))
-            print(d4rl_norm_scores[-1])
+            print(60*"=")
+            print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
+            print(60*"=")
             for b in trainer.model.blocks:
                 b.min_gru.train_mode()
         
