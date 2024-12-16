@@ -387,7 +387,7 @@ class Trainer:
                     states,
                     actions,
                     returns_to_go.unsqueeze(
-                dim=-1,
+                dim=-1),
                     traj_mask,
                 )
         
