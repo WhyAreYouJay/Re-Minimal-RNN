@@ -56,7 +56,7 @@ class minGRU_Reinformer(nn.Module):
         self.log_tmp = torch.tensor(np.log(init_tmp))
         self.log_tmp.requires_grad = True
         self.target_entropy = target_entropy
-
+    @torch.compile()
     def forward(
             self,
             timesteps,
