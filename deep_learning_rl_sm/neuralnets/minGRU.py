@@ -8,6 +8,7 @@ def g(x):
 
 @torch.compile
 def log_g(x):
+    return torch.where(x >= 0, (F.relu(x) + 0.5).log(), -F.softplus(-x))
     x_neg = x < 0
     lg = (F.relu(x) + 0.5).log()
     lg[x_neg] = -F.softplus(-x)[x_neg]
