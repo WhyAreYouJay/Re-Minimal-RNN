@@ -386,13 +386,19 @@ class Trainer:
                     timesteps,
                     states,
                     actions,
-                    returns_to_go.unsqueeze(
-                dim=-1),
+                    returns_to_go,
                     traj_mask,
                 )
         
     def train_step_benchmark(self):
             timesteps, states, actions, rtg, traj_mask = self.get_next()
+            timesteps = timesteps.to(self.device)      # B x T
+            states = states.to(self.device)            # B x T x state_dim
+            actions = actions.to(self.device)          # B x T x act_dim
+            rtg = rtg.to(self.device).unsqueeze(
+                dim=-1
+            )                                       # B x T x 1
+            traj_mask = traj_mask.to(self.device)      # B x T
             # model forward ----------------------------------------------
             (
                 returns_to_go_preds,
