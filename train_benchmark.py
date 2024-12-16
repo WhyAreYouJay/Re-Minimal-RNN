@@ -1,5 +1,5 @@
 import argparse
-import gym
+import gymnasium as gym
 import numpy as np
 import torch
 import wandb
@@ -9,15 +9,34 @@ from deep_learning_rl_sm.trainer.trainer import Trainer
 from deep_learning_rl_sm.neuralnets.minGRU_Reinformer import minGRU_Reinformer
 from deep_learning_rl_sm.neuralnets.lamb import Lamb
 from deep_learning_rl_sm.environments import connect_four
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import random
 
-def cumsum(x):
-    cumsum = np.zeros_like(x)
-    cumsum[-1] = x[-1]
-    for t in reversed(range(x.shape[0]-1)):
-        cumsum[t] = x[t] + cumsum[t+1]
-    return cumsum
+class D4RLDataset(Dataset):
+    def __init__(self,s,a,rtg,seq_len):
+        self.s = s
+        self.s_shape = list(s[0].shape)
+        self.a = a
+        self.a_shape = list(a[0].shape)
+        self.rtg = rtg
+        self.rtg_shape = list(rtg[0].shape)
+        self.seq_len = seq_len
+        self.rng = random.randint
+                
+    def __len__(self):
+        return len(self.s)    
+        
+    def __getitem__(self, idx):
+        si = self.rng(0, self.s_shape[0] - self.seq_len)
+        s,a,rtg = self.s[idx][si:si+self.seq_len],self.a[idx][si:si+self.seq_len],self.rtg[idx][si:si+self.seq_len]
+        pad_len = self.seq_len - s.shape[0]
+        s = torch.cat([torch.from_numpy(s),torch.zeros([pad_len]+self.s_shape[1:])], dim=0)
+        a = torch.cat([torch.from_numpy(a),torch.zeros([pad_len]+self.a_shape[1:])], dim=0)
+        rtg = torch.cat([torch.from_numpy(rtg),torch.zeros([pad_len]+self.rtg_shape[1:])], dim=0)
+        mask = torch.cat([torch.ones(s.shape[0]),torch.zeros(pad_len)],dim=0).type(torch.int8)
+        t = torch.arange(start=0,end=self.seq_len,step=1)
+        return (t,s,a,rtg,mask)
+         
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -51,6 +70,9 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.set_float32_matmul_precision("medium")
     args = parse_args()
     device = args.device
     seed = args.seed
@@ -68,22 +90,17 @@ if __name__ == "__main__":
     fp = download_dataset_from_url(env)
     max_ep_len = 1000 #Same for all 3 envs (Hopper, Walker, HalfCheetah)
     scale = 1000 # Normalization for rewards/returns
-    if args.env in ["walker2d"]:
-            env_name = "Walker2D"
-    if args.env in ["hopper"]:
-            env_name = "Hopper"
     if args.env in ["halfcheetah"]:
             scale = 5000
-            env_name = "HalfCheetah"
-    observations, acts,rewards, rew_to_gos, dones, traj_lengths,reward_sum = benchmark_data(fp)
-    environment = gym.make(env_name + "-v2")
+    observations, acts, rew_to_gos,state_mean,state_std = benchmark_data(fp)
+    environment = gym.make(args.env + "-v2", max_episode_steps=args.max_eval_ep_len)
     def get_normalized_score(score, env = env):
-        return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE)
+        return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE[env])
     def evaluator(model):
             return_mean, _, _, _ = Reinformer_eval(
                 model=model,
                 device=device,
-                context_len=args["K"],
+                context_len=max_ep_len,
                 env = environment,
                 state_mean=state_mean,
                 state_std=state_std,
@@ -93,8 +110,6 @@ if __name__ == "__main__":
             return get_normalized_score(
                 return_mean
             ) * 100
-    obs_concat = np.concatenate(observations, axis=0)
-    state_mean, state_std = np.mean(obs_concat, axis=0), np.std(obs_concat, axis=0) + 1e-6
     state_dim, act_dim = observations[0].shape[1], acts[0].shape[1]
     # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
     args = vars(args)
@@ -102,8 +117,9 @@ if __name__ == "__main__":
     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, n_blocks=args["n_blocks"],
                             h_dim=args["embed_dim"], n_layers=args["n_layers"],
                             drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                            target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], seq_len = device)
+                            target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], device=device, max_timestep=max_ep_len)
     model=model.to(device)
+    #torch.compile(model = model, mode="max-autotune")
     optimizer = Lamb(
         model.parameters(),
         lr=args["lr"],
@@ -114,66 +130,23 @@ if __name__ == "__main__":
         optimizer,
         lambda steps: min((steps + 1) / args["warmup_steps"], 1)
     )
-    K = args["K"]
-    num_trajectories = len(observations)
-    sorted_inds = np.argsort(reward_sum) #Sort by highest total returns
-    #p_sample = traj_lengths / sum(traj_lengths) #Sample trajectories based off their length
-    
-    def get_batch(batch_size=256, max_len=K):
-        batch_inds = rng.choice(
-            np.arange(num_trajectories),
-            size=batch_size,
-            replace=False,
-        )
-
-        s, a, r, d, rtg, timesteps, mask = [], [], [], [], [], [], []
-        for i in range(batch_size):
-            ob = observations[int(sorted_inds[batch_inds[i]])]
-            ac = acts[int(sorted_inds[batch_inds[i]])]
-            rew = rewards[int(sorted_inds[batch_inds[i]])]
-            rew_to_go = rew_to_gos[int(sorted_inds[batch_inds[i]])]
-            done = dones[int(sorted_inds[batch_inds[i]])]
-            si = random.randint(0, rew.shape[0] - max_len) #Reinformer style
-
-            # get sequences from dataset
-            s.append(np.array(ob[si:si + max_len]).reshape(1, -1, state_dim))
-            a.append(np.array(ac[si:si + max_len]).reshape(1, -1, act_dim))
-            r.append(np.array(rew[si:si + max_len]).reshape(1, -1, 1))
-            rtg.append(np.array(rew_to_go[si:si + max_len]).reshape(1, -1, 1))
-            d.append(np.array(done[si:si + max_len]).reshape(1, -1))
-            timesteps.append(np.arange(si, si + s[-1].shape[1]).reshape(1, -1))
-            timesteps[-1][timesteps[-1] >= max_ep_len] = max_ep_len-1  # padding cutoff
-            #This is maybe bad impl. ?!
-            """rtg.append(cumsum(rew[si:])[:s[-1].shape[1] + 1].reshape(1, -1, 1)) #1 element larger?!
-            if rtg[-1].shape[1] <= s[-1].shape[1]:
-                rtg[-1] = np.concatenate([rtg[-1], np.zeros((1, 1, 1))], axis=1)"""
-
-            # padding and state + reward normalization
-            tlen = s[-1].shape[1]
-            s[-1] = np.concatenate([s[-1],np.zeros((1, max_len - tlen, state_dim))], axis=1)
-            s[-1] = (s[-1] - state_mean) / state_std
-            a[-1] = np.concatenate([a[-1],np.zeros((1, max_len - tlen, act_dim))], axis=1)
-            r[-1] = np.concatenate([r[-1],np.zeros((1, max_len - tlen, 1))], axis=1)
-            d[-1] = np.concatenate([d[-1],np.zeros((1, max_len - tlen))], axis=1)
-            rtg[-1] = np.concatenate([rtg[-1],np.zeros((1, max_len - tlen, 1))], axis=1) / scale
-            timesteps[-1] = np.concatenate([timesteps[-1],np.zeros((1, max_len - tlen))], axis=1)
-            mask.append(np.concatenate([np.ones((1, tlen)),np.zeros((1, max_len - tlen)),], axis=1))
-
-        s = torch.from_numpy(np.concatenate(s, axis=0)).to(dtype=torch.float32, device=device)
-        a = torch.from_numpy(np.concatenate(a, axis=0)).to(dtype=torch.float32, device=device)
-        r = torch.from_numpy(np.concatenate(r, axis=0)).to(dtype=torch.float32, device=device)
-        d = torch.from_numpy(np.concatenate(d, axis=0)).to(dtype=torch.long, device=device)
-        rtg = torch.from_numpy(np.concatenate(rtg, axis=0)).to(dtype=torch.float32, device=device)
-        timesteps = torch.from_numpy(np.concatenate(timesteps, axis=0)).to(dtype=torch.long, device=device)
-        mask = torch.from_numpy(np.concatenate(mask, axis=0)).to(device=device)
-
-        return s, a, r, d, rtg, timesteps, mask
-    
-    trainer = Trainer(model=model, get_batch = get_batch, optimizer=optimizer, scheduler=scheduler, parsed_args=args, batch_size=args["batch_size"], device=device)
-    
+    #perhaps dynamically incease K
+    dataset = D4RLDataset(observations,acts,rew_to_gos,args["K"])
+    del observations,acts,rew_to_gos
+    traj_data_loader = DataLoader(
+        dataset,
+        batch_size=args["batch_size"],
+        shuffle=True,
+        pin_memory=True,
+        drop_last=True,
+    )
+    trainer = Trainer(model=model, data_loader = traj_data_loader, optimizer=optimizer, scheduler=scheduler, parsed_args=args, batch_size=args["batch_size"], device=device)
+    del model, traj_data_loader
+    torch.backends.cudnn.benchmark = True
     d4rl_norm_scores = []
     for it in range(args["max_iters"]):
         outputs = trainer.train_iteration_benchmark(num_steps=args['num_steps_per_iter'], iter_num=it+1, print_logs=True)
         #Eval
-        d4rl_norm_scores.append(evaluator(trainer.model))
+        with torch.no_grad():
+            d4rl_norm_scores.append(evaluator(trainer.model))
         
