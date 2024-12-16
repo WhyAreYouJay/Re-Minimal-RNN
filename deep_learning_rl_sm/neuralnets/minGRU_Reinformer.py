@@ -31,13 +31,13 @@ class minGRU_Reinformer(nn.Module):
         # minGRU blocks
         self.num_inputs = 3
         #seq_len_in = self.num_inputs * context_len
-        min_gru_blocks = [ #Consider trying BlockV2
+        self.blocks = [ #Consider trying BlockV2
             BlockV3(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, device = device)
             for _ in range(n_layers)
         ]
-        for b in min_gru_blocks:
+        for b in self.blocks:
             b.compile()
-        self.min_gru_stacked = nn.Sequential(*min_gru_blocks)
+        self.min_gru_stacked = nn.Sequential(*self.blocks)
         self.min_gru_stacked.compile()
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim, device = device)
