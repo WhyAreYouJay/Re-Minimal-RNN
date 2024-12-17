@@ -111,7 +111,7 @@ if __name__ == "__main__":
                 seed = seed,
                 model=model,
                 device=device,
-                context_len=max_ep_len,
+                context_len=args["K"],
                 env = environment,
                 state_mean=state_mean,
                 state_std=state_std,
