@@ -68,7 +68,7 @@ class minGRU_Reinformer(nn.Module):
             returns_to_go,
     ):
         B, T, _ = states.shape
-        print(states.shape)
+        #print(states.shape)
         embd_t = self.embed_timestep(timesteps)
         # print("embed_t dim: ", embd_t.shape)
         # time embeddings ≈ pos embeddings
@@ -93,7 +93,7 @@ class minGRU_Reinformer(nn.Module):
         )
 
         h = self.embed_ln(h)
-        print("h shape: ", h.shape)
+        #print("h shape: ", h.shape)
         # transformer and prediction
         h = self.min_gru_stacked(h)
 
