@@ -19,7 +19,7 @@ def Reinformer_eval(
 
     state_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
-    env.action_space.seed(seed)
+    env.set_np_random_through_seed(seed)
     state_mean = torch.from_numpy(state_mean).to(device)
     state_std = torch.from_numpy(state_std).to(device)
 
@@ -47,7 +47,7 @@ def Reinformer_eval(
             )
 
             # init episode
-            running_state = env.reset(seed = seed)[0]
+            running_state = env.reset()[0]
             episode_return = 0
             episode_length = 0
 
