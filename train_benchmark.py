@@ -160,12 +160,12 @@ if __name__ == "__main__":
         outputs = trainer.train_iteration_benchmark(num_steps=args['num_steps_per_iter'], iter_num=it+1, print_logs=True)
         #Eval
         with torch.no_grad():
-            for b in trainer.model.blocks:
-                b.min_gru.eval_mode()
+            """for b in trainer.model.blocks:
+                b.min_gru.eval_mode()"""
             d4rl_norm_scores.append(evaluator(trainer.model))
             print(60*"=")
             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
             print(60*"=")
-            for b in trainer.model.blocks:
-                b.min_gru.train_mode()
+            """for b in trainer.model.blocks:
+                b.min_gru.train_mode()"""
         
