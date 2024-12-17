@@ -77,7 +77,7 @@ def parse_args():
 if __name__ == "__main__":
     
     torch.backends.cuda.matmul.allow_tf32 = True
-    torch.set_float32_matmul_precision("medium")
+    torch.set_float32_matmul_precision("high")
     args = parse_args()
     device = args.device
     seed = args.seed
