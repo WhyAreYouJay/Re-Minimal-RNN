@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from deep_learning_rl_sm.neuralnets.minGRU import BlockV3
 from deep_learning_rl_sm.neuralnets.nets import Actor
-
+from deep_learning_rl_sm.neuralnets.nets import TB
 
 class minGRU_Reinformer(nn.Module):
     def __init__(
@@ -36,6 +36,8 @@ class minGRU_Reinformer(nn.Module):
             BlockV3(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, device = device, conv = conv)
             for _ in range(n_layers)
         ]
+        """self.blocks = [TB(h_dim, max_T, n_heads, drop_p, num_inputs, mgdt=False, dt_mask=False, att_mask=None) for _ in
+                               range(n_layers)]"""
         for b in self.blocks:
             b.compile()
         self.min_gru_stacked = nn.Sequential(*self.blocks)
