@@ -101,10 +101,10 @@ class CausalDepthWiseConv1d(Module):
     
 class BlockV3(Module):
     """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
-    def __init__(self,dim,n_layers,drop_p,kernel_size,expansion_factor,batch_size,device, mult=4):
+    def __init__(self,dim,n_layers,drop_p,kernel_size,expansion_factor,batch_size,device, conv, mult=4):
         """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
         super().__init__()
-        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) #Conv1dLayer(dim,kernel_size)
+        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else torch.nn.Identity() #Conv1dLayer(dim,kernel_size)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
         self.min_gru = minGRU(dim,batch_size,device,expansion_factor)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
