@@ -103,11 +103,6 @@ class MaskedCausalAttention(nn.Module):
         weights = q @ k.transpose(2, 3) / math.sqrt(D)
         # causal mask applied to weights
         print(x.shape)
-        print(q.shape)
-        print(k.shape)
-        print(v.shape)
-        print(weights.shape)
-        print(self.mask[...,:T,:T].shape)
         weights = weights.masked_fill(
             self.mask[..., :T, :T] == 0, float("-inf")
         )
@@ -159,6 +154,7 @@ class TB(nn.Module):
 
     def forward(self, x):
         # Attention -> LayerNorm -> MLP -> LayerNorm
+        print(x.shape)
         x = x + self.attention(x)  # residual
         x = self.ln1(x)
         x = x + self.mlp(x)  # residual
