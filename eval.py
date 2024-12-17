@@ -3,6 +3,7 @@ import numpy as np
 
 
 def Reinformer_eval(
+    seed,
     model,
     device,
     context_len,
@@ -46,7 +47,7 @@ def Reinformer_eval(
             )
 
             # init episode
-            running_state = env.reset()[0]
+            running_state = env.reset(seed = seed)[0]
             episode_return = 0
             episode_length = 0
 
