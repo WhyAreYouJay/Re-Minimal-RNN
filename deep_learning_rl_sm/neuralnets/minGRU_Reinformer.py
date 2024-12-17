@@ -93,7 +93,7 @@ class minGRU_Reinformer(nn.Module):
         )
 
         h = self.embed_ln(h)
-        # print("h shape: ", h.shape)
+        print("h shape: ", h.shape)
         # transformer and prediction
         h = self.min_gru_stacked(h)
 
