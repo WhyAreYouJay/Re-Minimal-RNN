@@ -54,7 +54,7 @@ def parse_args():
     parser.add_argument("--n_blocks", type=int, default=4)
     parser.add_argument("--embed_dim", type=int, default=256)
     parser.add_argument('--K', type=int, default=20)
-    parser.add_argument("--n_layers", type=int, default=8)
+    parser.add_argument("--n_layers", type=int, default=3)
     parser.add_argument("--dropout_p", type=float, default=0.1)
     parser.add_argument("--grad_norm", type=float, default=0.25)
     parser.add_argument("--tau", type=float, default=0.99)
