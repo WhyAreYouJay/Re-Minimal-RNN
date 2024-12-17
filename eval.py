@@ -58,7 +58,7 @@ def Reinformer_eval(
                 #print(f"State {t} : {states[0,t]}")
                 # predict rtg by model
                 if t < context_len:
-                    print(f"FW1<:{states[:, :context_len]}")
+                    #print(f"FW1<:{states[:, :context_len]}")
                     rtg_preds, _ = model.forward(
                         timesteps[:, :context_len],
                         states[:, :context_len],
@@ -67,7 +67,7 @@ def Reinformer_eval(
                     )
                     rtg = rtg_preds[0, t].detach()
                 else:
-                    print(f"FW1>:{states[:, :context_len]}")
+                    #print(f"FW1>:{states[:, :context_len]}")
                     rtg_preds, _  = model.forward(
                         timesteps[:, t - context_len + 1 : t + 1],
                         states[:, t - context_len + 1 : t + 1],
@@ -80,7 +80,7 @@ def Reinformer_eval(
                 returns_to_go[0, t] = rtg
                 # take action by model
                 if t < context_len:
-                    print(f"FW2<:{states[:, :context_len]}")
+                    #print(f"FW2<:{states[:, :context_len]}")
                     _, act_dist_preds = model.forward(
                         timesteps[:, :context_len],
                         states[:, :context_len],
@@ -89,7 +89,7 @@ def Reinformer_eval(
                     )
                     act = act_dist_preds.mean.reshape(eval_batch_size, -1, act_dim)[0, t].detach()
                 else:
-                    print(f"FW2>:{states[:, :context_len]}")
+                    #print(f"FW2>:{states[:, :context_len]}")
                     _, act_dist_preds = model.forward(
                         timesteps[:, t - context_len + 1 : t + 1],
                         states[:, t - context_len + 1 : t + 1],
