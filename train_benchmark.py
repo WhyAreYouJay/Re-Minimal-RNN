@@ -68,6 +68,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--init_temperature", type=float, default=0.1)
     parser.add_argument("--eps", type=float, default=1e-8)
+    parser.add_argument("--conv", type=float, default=True)
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=False)
     return parser.parse_args()
@@ -126,7 +127,7 @@ if __name__ == "__main__":
     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, n_blocks=args["n_blocks"],
                             h_dim=args["embed_dim"], n_layers=args["n_layers"],
                             drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                            target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], device=device, max_timestep=max_ep_len)
+                            target_entropy=target_entropy, discrete=args["env_discrete"], batch_size = args["batch_size"], device=device, max_timestep=max_ep_len, conv = args["conv"])
     model=model.to(device)
     torch.compile(model = model, mode="max-autotune")
     optimizer = Lamb(
