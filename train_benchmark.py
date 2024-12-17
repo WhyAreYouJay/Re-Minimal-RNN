@@ -108,7 +108,7 @@ if __name__ == "__main__":
         return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE[env])
     def evaluator(model):
             return_mean, _, _, _ = Reinformer_eval(
-                seed = seed
+                seed = seed,
                 model=model,
                 device=device,
                 context_len=max_ep_len,
