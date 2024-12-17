@@ -102,6 +102,10 @@ class MaskedCausalAttention(nn.Module):
         # weights (B, N, T, T)
         weights = q @ k.transpose(2, 3) / math.sqrt(D)
         # causal mask applied to weights
+        print(x.shape)
+        print(q.shape)
+        print(k.shape)
+        print(v.shape)
         print(weights.shape)
         print(self.mask[...,:T,:T].shape)
         weights = weights.masked_fill(
