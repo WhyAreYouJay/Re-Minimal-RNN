@@ -19,6 +19,7 @@ class minGRU_Reinformer(nn.Module):
             discrete,
             batch_size,
             device,
+            conv = True,
             max_timestep=4096,
             expansion_factor = 1.5,
             kernel_size = 4):
@@ -32,7 +33,7 @@ class minGRU_Reinformer(nn.Module):
         self.num_inputs = 3
         #seq_len_in = self.num_inputs * context_len
         self.blocks = [ #Consider trying BlockV2
-            BlockV3(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, device = device)
+            BlockV3(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, device = device, conv = conv)
             for _ in range(n_layers)
         ]
         for b in self.blocks:
