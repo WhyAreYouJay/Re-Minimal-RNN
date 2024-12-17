@@ -61,7 +61,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--wd", type=float, default=1e-4)
-    parser.add_argument("--warmup_steps", type=int, default=500)
+    parser.add_argument("--warmup_steps", type=int, default=5000)
     parser.add_argument("--max_iters", type=int, default=20)
     parser.add_argument("--num_steps_per_iter", type=int, default=5000)
     parser.add_argument("--device", type=str, default="cuda")
