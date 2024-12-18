@@ -45,7 +45,7 @@ class D4RLDataset(Dataset):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type", choices=["reinformer"], default="reinformer")
-    parser.add_argument("--env", default="halfcheetah")
+    parser.add_argument("--env", choices=["halfcheetah", "walker2d", "hopper"], default="hopper")
     parser.add_argument("--env_discrete", type=bool, default=False)
     parser.add_argument("--dataset",choices=["medium","medium_expert","medium_replay"], type=str, default="medium")
     parser.add_argument("--num_eval_ep", type=int, default=3)
