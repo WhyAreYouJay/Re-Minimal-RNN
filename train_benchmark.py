@@ -96,7 +96,7 @@ if __name__ == "__main__":
     max_ep_len = 1000 #Same for all 3 envs (Hopper, Walker, HalfCheetah)
     scale = 1000 # Normalization for rewards/returns
     if args.env in ["walker2d"]:
-            env_name = "Walker2D"
+            env_name = "Walker2d"
     if args.env in ["hopper"]:
             env_name = "Hopper"
     if args.env in ["halfcheetah"]:
