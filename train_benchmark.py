@@ -37,9 +37,8 @@ class D4RLDataset(Dataset):
         s = torch.cat([torch.from_numpy(s),torch.zeros([pad_len]+self.s_shape[1:])], dim=0)
         a = torch.cat([torch.from_numpy(a),torch.zeros([pad_len]+self.a_shape[1:])], dim=0)
         rtg = torch.cat([torch.from_numpy(rtg),torch.zeros([pad_len]+self.rtg_shape[1:])], dim=0)
-        mask = torch.cat([torch.ones(s.shape[0]),torch.zeros(pad_len)],dim=0).type(torch.int8)
+        mask = torch.cat([torch.ones(self.seq_len - pad_len),torch.zeros(pad_len)],dim=0)
         t = torch.arange(start=0,end=self.seq_len,step=1)
-        print(t.shape,s.shape,a.shape,rtg.shape,mask.shape)
         return (t,s,a,rtg,mask)
          
 
