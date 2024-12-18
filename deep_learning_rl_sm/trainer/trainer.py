@@ -24,8 +24,8 @@ class Trainer:
         self.device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.time_start = time.time()
         # Define DataLoader
-        if dataset is not None:
-            self.data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        """if dataset is not None:
+            self.data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)"""
 
         # Define optimizer and loss function
         self.optimizer = optimizer
