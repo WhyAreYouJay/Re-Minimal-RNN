@@ -32,7 +32,7 @@ class D4RLDataset(Dataset):
         
     def __getitem__(self, idx):
         si = self.rng(0, self.s_shape[0] - self.seq_len)
-        s,a,rtg = self.s[idx][si:si+self.seq_len],self.a[idx][si:si+self.seq_len],self.rtg[idx][si:si+self.seq_len]
+        s,a,rtg = self.s[idx][si:si+self.seq_len],self.a[idx][si:si+self.seq_len],self.rtg[idx][si:si+self.seq_len] - self.rtg[idx][si+self.seq_len]
         pad_len = self.seq_len - s.shape[0]
         s = torch.cat([torch.from_numpy(s),torch.zeros([pad_len]+self.s_shape[1:])], dim=0)
         a = torch.cat([torch.from_numpy(a),torch.zeros([pad_len]+self.a_shape[1:])], dim=0)
