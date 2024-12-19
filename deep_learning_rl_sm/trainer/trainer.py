@@ -347,7 +347,7 @@ class Trainer:
         logs['time/total'] = time.time() - self.time_start
         logs['training/train_loss_mean'] = np.mean(train_losses)
         logs['training/train_loss_std'] = np.std(train_losses)
-
+        wandb.log({"train_loss_mean":np.mean(train_losses)})
         
         # diagnostics -----------------------------------------------
         """for k in self.diagnostics:
@@ -435,9 +435,9 @@ class Trainer:
             ].mean()
             entropy = actions_dist_preds.entropy().sum(axis=2).mean()
             action_loss = -(log_likelihood + self.model.temp().detach() * entropy)
-
+            wandb.log({"rtg_loss": return_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":self.model.temp().detach() * entropy})
             loss = returns_to_go_loss + action_loss
-
+            
             # optimizer -----------------------------------------------
             self.optimizer.zero_grad()
             loss.backward()
