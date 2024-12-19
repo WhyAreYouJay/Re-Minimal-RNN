@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument("--env", choices=["halfcheetah", "walker2d", "hopper"], default="hopper")
     parser.add_argument("--env_discrete", type=bool, default=False)
     parser.add_argument("--dataset",choices=["medium","medium_expert","medium_replay"], type=str, default="medium")
-    parser.add_argument("--num_eval_ep", type=int, default=3)
+    parser.add_argument("--num_eval_ep", type=int, default=10)
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str, default="deep_learning_rl_sm/benchmarks/data/halfcheetah_medium_expert-v2.hdf5")
     parser.add_argument("--n_blocks", type=int, default=4)
@@ -77,7 +77,7 @@ def parse_args():
 if __name__ == "__main__":
     
     torch.backends.cuda.matmul.allow_tf32 = True
-    torch.set_float32_matmul_precision("high")
+    torch.set_float32_matmul_precision("highest")
     args = parse_args()
     device = args.device
     seed = args.seed
@@ -143,7 +143,6 @@ if __name__ == "__main__":
     )
     #perhaps dynamically incease K
     dataset = D4RLDataset(observations,acts,rew_to_gos,args["K"])
-    del observations,acts,rew_to_gos
     traj_data_loader = DataLoader(
         dataset,
         batch_size=args["batch_size"],
@@ -153,7 +152,6 @@ if __name__ == "__main__":
         generator = torch.Generator().manual_seed(seed)
     )
     trainer = Trainer(model=model, data_loader = traj_data_loader, optimizer=optimizer, scheduler=scheduler, parsed_args=args, batch_size=args["batch_size"], device=device)
-    del model, traj_data_loader
     torch.backends.cudnn.benchmark = True
     d4rl_norm_scores = []
     for it in range(args["max_iters"]):
