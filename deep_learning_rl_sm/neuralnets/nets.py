@@ -20,7 +20,7 @@ class Actor(nn.Module):
     @torch.compile()
     def forward(self, x):
         action_mean = torch.tanh(self.mu(x))
-        action_std = torch.exp(self.log_std(x).clamp(self.log_std_min, self.log_std_max))
+        action_std = torch.exp(self.log_std.clamp(self.log_std_min, self.log_std_max))
         return torch_dist.Normal(action_mean,
                                  action_std)
         # return torch_dist.Normal(action_mean, action_std)
