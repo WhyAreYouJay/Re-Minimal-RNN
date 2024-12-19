@@ -325,7 +325,7 @@ class Trainer:
             if i%50 == 0:
                 print(f"Iteration {i}, time: {time.time() - train_start}")
             train_loss = self.train_step_benchmark()
-            wandb.log({"train_loss":np.mean(train_loss)})
+            #wandb.log({"train_loss":np.mean(train_loss)})
             train_losses.append(train_loss)
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -348,6 +348,9 @@ class Trainer:
         logs['time/total'] = time.time() - self.time_start
         logs['training/train_loss_mean'] = np.mean(train_losses)
         logs['training/train_loss_std'] = np.std(train_losses)
+        
+        wandb.log({"train_loss_mean":np.mean(train_losses)})
+
         
         # diagnostics -----------------------------------------------
         """for k in self.diagnostics:
