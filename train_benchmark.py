@@ -70,7 +70,7 @@ def parse_args():
     parser.add_argument("--eps", type=float, default=1e-8)
     parser.add_argument("--conv", type=float, default=False)
     # use_wandb = False
-    parser.add_argument("--use_wandb", action='store_true', default=False)
+    parser.add_argument("--use_wandb", action='store_true', default=True)
     return parser.parse_args()
 
 
@@ -162,6 +162,7 @@ if __name__ == "__main__":
                 b.min_gru.eval_mode()
             d4rl_norm_scores.append(evaluator(trainer.model))
             print(60*"=")
+            wandb.log({f"Normalized_Score_{env}" : d4rl_norm_scores[-1]})
             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
             print(60*"=")
             for b in trainer.model.blocks:
