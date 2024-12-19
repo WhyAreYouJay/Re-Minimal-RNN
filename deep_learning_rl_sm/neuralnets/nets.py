@@ -11,8 +11,8 @@ class Actor(nn.Module):
     def __init__(self, num_actions, h_dim, device, discrete=False):
         super().__init__()
         self.mu = nn.Linear(h_dim, num_actions, device=device)
-        # (FROM PAPER) self.log_std = nn.Parameter(torch.zeros(act_dim, dtype=torch.float32, device = device))
-        self.log_std = nn.Linear(h_dim, num_actions, device=device)
+        self.log_std = nn.Parameter(torch.zeros(act_dim, dtype=torch.float32, device = device))
+        #self.log_std = nn.Linear(h_dim, num_actions, device=device)
         self.log_std_min = -20
         self.log_std_max = 2
         self.categorical_dist = discrete
