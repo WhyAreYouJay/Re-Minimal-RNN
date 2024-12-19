@@ -435,7 +435,7 @@ class Trainer:
             ].mean()
             entropy = actions_dist_preds.entropy().sum(axis=2).mean()
             action_loss = -(log_likelihood + self.model.temp().detach() * entropy)
-            wandb.log({"rtg_loss": return_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":self.model.temp().detach() * entropy})
+            wandb.log({"rtg_loss": returns_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":self.model.temp().detach() * entropy})
             loss = returns_to_go_loss + action_loss
             
             # optimizer -----------------------------------------------
