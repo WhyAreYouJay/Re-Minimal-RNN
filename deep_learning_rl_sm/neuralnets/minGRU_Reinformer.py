@@ -21,7 +21,7 @@ class minGRU_Reinformer(nn.Module):
             device,
             conv = True,
             max_timestep=4096,
-            expansion_factor = 1.5,
+            expansion_factor = 2,
             kernel_size = 4):
         super().__init__()
         self.num_actions = 7
