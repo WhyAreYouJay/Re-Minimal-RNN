@@ -5,6 +5,7 @@ from deep_learning_rl_sm.neuralnets.minGRU import BlockV3
 from deep_learning_rl_sm.neuralnets.nets import Actor
 from deep_learning_rl_sm.neuralnets.nets import TB
 
+
 class minGRU_Reinformer(nn.Module):
     def __init__(
             self,
@@ -19,10 +20,11 @@ class minGRU_Reinformer(nn.Module):
             discrete,
             batch_size,
             device,
-            conv = True,
+            conv=True,
             max_timestep=4096,
-            expansion_factor = 2,
-            kernel_size = 4):
+            expansion_factor=2,
+            kernel_size=4,
+            std_cond_on_input=False):
         super().__init__()
         self.num_actions = 7
         self.a_dim = act_dim if not discrete else self.num_actions
@@ -31,9 +33,10 @@ class minGRU_Reinformer(nn.Module):
 
         # minGRU blocks
         self.num_inputs = 3
-        #seq_len_in = self.num_inputs * context_len
-        self.blocks = [ #Consider trying BlockV2
-            BlockV3(self.h_dim,n_layers, drop_p,kernel_size,expansion_factor, batch_size = batch_size, device = device, conv = conv)
+        # seq_len_in = self.num_inputs * context_len
+        self.blocks = [  # Consider trying BlockV2
+            BlockV3(self.h_dim, n_layers, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                    conv=conv)
             for _ in range(n_layers)
         ]
         """self.blocks = [TB(h_dim, 15, 8, drop_p, 3, mgdt=False, dt_mask=False) for _ in
@@ -43,20 +46,21 @@ class minGRU_Reinformer(nn.Module):
         self.min_gru_stacked = nn.Sequential(*self.blocks)
         self.min_gru_stacked.compile()
         # projection heads (project to embedding) /same as paper
-        self.embed_ln = nn.LayerNorm(self.h_dim, device = device)
-        self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0, device = device)
-        self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim, device = device)
-        self.embed_rtg = nn.Linear(1, self.h_dim, device = device)
-        self.embed_action = nn.Linear(self.a_dim, self.h_dim, device = device)
+        self.embed_ln = nn.LayerNorm(self.h_dim, device=device)
+        self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0, device=device)
+        self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim, device=device)
+        self.embed_rtg = nn.Linear(1, self.h_dim, device=device)
+        self.embed_action = nn.Linear(self.a_dim, self.h_dim, device=device)
 
         # prediction heads /same as paper
-        self.predict_rtg = nn.Linear(self.h_dim, 1, device = device)
+        self.predict_rtg = nn.Linear(self.h_dim, 1, device=device)
         # stochastic action (output is distribution)
-        self.predict_action = Actor(self.a_dim, self.h_dim, discrete=discrete, device = device)
-        #self.predict_state = nn.Linear(self.h_dim, np.prod(self.s_dim))
+        self.predict_action = Actor(self.a_dim, self.h_dim, discrete=discrete, device=device,
+                                    std_cond_on_input=std_cond_on_input)
+        # self.predict_state = nn.Linear(self.h_dim, np.prod(self.s_dim))
 
         # For entropy /same as paper
-        self.log_tmp = torch.tensor(np.log(init_tmp), device = device)
+        self.log_tmp = torch.tensor(np.log(init_tmp), device=device)
         self.log_tmp.requires_grad = True
         self.target_entropy = target_entropy
 
@@ -68,7 +72,7 @@ class minGRU_Reinformer(nn.Module):
             returns_to_go,
     ):
         B, T, _ = states.shape
-        #print(states.shape)
+        # print(states.shape)
         embd_t = self.embed_timestep(timesteps)
         # print("embed_t dim: ", embd_t.shape)
         # time embeddings ≈ pos embeddings
@@ -93,7 +97,7 @@ class minGRU_Reinformer(nn.Module):
         )
 
         h = self.embed_ln(h)
-        #print("h shape: ", h.shape)
+        # print("h shape: ", h.shape)
         # transformer and prediction
         h = self.min_gru_stacked(h)
 
@@ -109,7 +113,7 @@ class minGRU_Reinformer(nn.Module):
         # get predictions
         rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
         action_dist_preds = self.predict_action(h[:, 1])  # predict action given s, R
-        #state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
+        # state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
         return rtg_preds, action_dist_preds
 
     def temp(self):

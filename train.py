@@ -39,6 +39,7 @@ parser.add_argument("--device", type=str, default="cuda")
 parser.add_argument("--seed", type=int, default=2024)
 parser.add_argument("--init_temperature", type=float, default=0.1)
 parser.add_argument("--eps", type=float, default=1e-8)
+parser.add_argument("--std_cond_on_input", type=bool, default=False)
 # use_wandb = False
 parser.add_argument("--use_wandb", action='store_true', default=False)
 args = parser.parse_args()
@@ -57,7 +58,8 @@ target_entropy = -np.log(np.prod(env.action_dim)) if args["env_discrete"] else -
 model = minGRU_Reinformer(state_dim=env.state_dim, act_dim=env.action_dim, n_blocks=args["n_blocks"],
                           h_dim=args["embed_dim"], context_len=args["context_len"], n_heads=args["n_heads"],
                           drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                          target_entropy=target_entropy, discrete=args["env_discrete"])
+                          target_entropy=target_entropy, discrete=args["env_discrete"],
+                          std_cond_on_input=args["std_cond_on_input"])
 optimizer = Lamb(
     model.parameters(),
     lr=args["lr"],
