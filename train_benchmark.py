@@ -59,19 +59,19 @@ def parse_args():
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str,
                         default="deep_learning_rl_sm/benchmarks/data/halfcheetah_medium_expert-v2.hdf5")
-    parser.add_argument("--embed_dim", type=int, default=256)
-    parser.add_argument('--K', type=int, default=20)
+    # parser.add_argument("--embed_dim", type=int, default=256)
+    # parser.add_argument('--K', type=int, default=20)
     parser.add_argument("--n_layers", type=int, default=3)
     parser.add_argument("--dropout_p", type=float, default=0.1)
     parser.add_argument("--grad_norm", type=float, default=0.25)
-    parser.add_argument("--tau", type=float, default=0.99)
-    parser.add_argument("--batch_size", type=int, default=128)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--wd", type=float, default=1e-4)
+    # parser.add_argument("--tau", type=float, default=0.99)
+    # parser.add_argument("--batch_size", type=int, default=128)
+    # parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--wd", type=float, default=1e-2)
     parser.add_argument("--warmup_steps", type=int, default=5000)
     parser.add_argument("--max_iters", type=int, default=20)
-    parser.add_argument("--num_steps_per_iter", type=int, default=5000)
-    parser.add_argument("--seed", type=int, default=2024)
+    parser.add_argument("--num_steps_per_iter", type=int, default=300)
+    # parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--init_temperature", type=float, default=0.1)
     parser.add_argument("--eps", type=float, default=1e-8)
     parser.add_argument("--conv", type=float, default=False)
@@ -84,110 +84,128 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    seeds = [0,42,2024]
+    Ks = [5,20]
+    batch_sizes = [64,128]
+    lrs = [10**-4,10**-3]
+    taus = {"halfcheetah":{"medium": 0.9, "meedium-replay": 0.9, "medium-expert": 0.9},"hopper":{"medium": 0.999, "meedium-replay": 0.999, "medium-expert": 0.9},"walker2d":{"medium": 0.9, "meedium-replay": 0.99, "medium-expert": 0.99}}
+
+    
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     gpu = str(device) == "cuda"
     torch.backends.cuda.matmul.allow_tf32 = True if gpu else False
     if gpu:
         torch.set_float32_matmul_precision("highest")
-    seed = args.seed
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    rng = np.random.default_rng(seed)
-    if args.use_wandb:
-        wandb.login()
-        wandb.init(
-            name=args.env + "-" + args.dataset,
-            project="Reinformer",
-            config=vars(args)
-        )
-    env = args.env + "_" + args.dataset + "-v2"
-    fp = download_dataset_from_url(env)
-    max_ep_len = 1000  # Same for all 3 envs (Hopper, Walker, HalfCheetah)
-    scale = 1000  # Normalization for rewards/returns
-    if args.env in ["walker2d"]:
-        env_name = "Walker2d"
-    if args.env in ["hopper"]:
-        env_name = "Hopper"
-    if args.env in ["halfcheetah"]:
-        scale = 5000
-        env_name = "HalfCheetah"
-    observations, acts, rew_to_gos, state_mean, state_std = benchmark_data(fp)
-    environment = gym.make(env_name + "-v4")
+    for seed in seeds:
+        for K in Ks:
+            for batch_size in batch_sizes:
+                embed_dim = 2*batch_size
+                for lr in lrs:
+    
+                    random.seed(seed)
+                    np.random.seed(seed)
+                    torch.manual_seed(seed)
+                    rng = np.random.default_rng(seed)
+                    if args.use_wandb:
+                        wandb.login()
+                        wandb.init(
+                            name=args.env + "-" + args.dataset,
+                            project="Reinformer",
+                            config=vars(args)
+                        )
+                    env = args.env + "_" + args.dataset + "-v2"
+                    fp = download_dataset_from_url(env)
+                    max_ep_len = 1000  # Same for all 3 envs (Hopper, Walker, HalfCheetah)
+                    scale = 1000  # Normalization for rewards/returns
+                    if args.env in ["walker2d"]:
+                        env_name = "Walker2d"
+                    if args.env in ["hopper"]:
+                        env_name = "Hopper"
+                    if args.env in ["halfcheetah"]:
+                        scale = 5000
+                        env_name = "HalfCheetah"
+                    observations, acts, rew_to_gos, state_mean, state_std = benchmark_data(fp)
+                    environment = gym.make(env_name + "-v4")
 
 
-    def get_normalized_score(score, env=env):
-        return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE[env])
+                    def get_normalized_score(score, env=env):
+                        return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE[env])
 
 
-    def evaluator(model):
-        return_mean, _, _, _ = Reinformer_eval(
-            seed=seed,
-            model=model,
-            device=device,
-            context_len=args["K"],
-            env=environment,
-            state_mean=state_mean,
-            state_std=state_std,
-            num_eval_ep=args["num_eval_ep"],
-            max_test_ep_len=args["max_eval_ep_len"]
-        )
-        return get_normalized_score(
-            return_mean
-        ) * 100
+                    def evaluator(model):
+                        return_mean, _, _, _ = Reinformer_eval(
+                            seed=seed,
+                            model=model,
+                            device=device,
+                            context_len=K,
+                            env=environment,
+                            state_mean=state_mean,
+                            state_std=state_std,
+                            num_eval_ep=args["num_eval_ep"],
+                            max_test_ep_len=args["max_eval_ep_len"]
+                        )
+                        return get_normalized_score(
+                            return_mean
+                        ) * 100
 
 
-    state_dim, act_dim = observations[0].shape[1], acts[0].shape[1]
-    # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
-    args = vars(args)
-    target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
-    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim,
-                              h_dim=args["embed_dim"], n_layers=args["n_layers"],
-                              drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                              target_entropy=target_entropy, discrete=args["env_discrete"],
-                              batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
-                              std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
-    model = model.to(device)
-    if gpu:
-        torch.compile(model=model, mode="max-autotune")
-    optimizer = Lamb(
-        model.parameters(),
-        lr=args["lr"],
-        weight_decay=args["wd"],
-        eps=args["eps"],
-    )
-    scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer,
-        lambda steps: min((steps + 1) / args["warmup_steps"], 1)
-    )
-    # perhaps dynamically incease K
-    dataset = D4RLDataset(observations, acts, rew_to_gos, args["K"])
-    traj_data_loader = DataLoader(
-        dataset,
-        batch_size=args["batch_size"],
-        shuffle=True,
-        pin_memory=True,
-        drop_last=True,
-        generator=torch.Generator().manual_seed(seed)
-    )
-    trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
-                      parsed_args=args, batch_size=args["batch_size"], device=device)
-    if gpu:
-        torch.backends.cudnn.benchmark = True
-    d4rl_norm_scores = []
-    for it in range(args["max_iters"]):
-        outputs = trainer.train_iteration_benchmark(num_steps=args['num_steps_per_iter'], iter_num=it + 1,
-                                                    print_logs=True)
-        # Eval
-        with torch.no_grad():
-            for b in trainer.model.blocks:
-                b.cell.eval_mode()
-            d4rl_norm_scores.append(evaluator(trainer.model))
-            print(60 * "=")
-            if args["use_wandb"]:
-                wandb.log({f"Normalized_Score_{env}": d4rl_norm_scores[-1]})
-            print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
-            print(60 * "=")
-            for b in trainer.model.blocks:
-                b.cell.train_mode()
+                    state_dim, act_dim = observations[0].shape[1], acts[0].shape[1]
+                    # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
+                    args = vars(args)
+                    args["tau"] = taus[args.env][args.dataset]
+                    args["K"] = K
+                    args["batch_size"] = batch_size
+                    args["embed_dim"] = embed_dim
+                    args["lr"] = lr
+                    args["seed"] = seed
+                    target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
+                    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim,
+                                            h_dim=args["embed_dim"], n_layers=args["n_layers"],
+                                            drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
+                                            target_entropy=target_entropy, discrete=args["env_discrete"],
+                                            batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
+                                            std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
+                    model = model.to(device)
+                    """if gpu:
+                        torch.compile(model=model, mode="max-autotune")"""
+                    optimizer = Lamb(
+                        model.parameters(),
+                        lr=args["lr"],
+                        weight_decay=args["wd"],
+                        eps=args["eps"],
+                    )
+                    scheduler = torch.optim.lr_scheduler.LambdaLR(
+                        optimizer,
+                        lambda steps: min((steps + 1) / args["warmup_steps"], 1)
+                    )
+                    # perhaps dynamically incease K
+                    dataset = D4RLDataset(observations, acts, rew_to_gos, K)
+                    traj_data_loader = DataLoader(
+                        dataset,
+                        batch_size=batch_size,
+                        shuffle=True,
+                        pin_memory=True,
+                        drop_last=True,
+                        generator=torch.Generator().manual_seed(seed)
+                    )
+                    trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
+                                    parsed_args=args, batch_size=args["batch_size"], device=device)
+                    if gpu:
+                        torch.backends.cudnn.benchmark = True
+                    d4rl_norm_scores = []
+                    for it in range(args["max_iters"]):
+                        outputs = trainer.train_iteration_benchmark(num_steps=args['num_steps_per_iter'], iter_num=it + 1,
+                                                                    print_logs=True)
+                        # Eval
+                        with torch.no_grad():
+                            for b in trainer.model.blocks:
+                                b.cell.eval_mode()
+                            d4rl_norm_scores.append(evaluator(trainer.model))
+                            print(60 * "=")
+                            if args["use_wandb"]:
+                                wandb.log({f"Normalized_Score_{env}": d4rl_norm_scores[-1]})
+                            print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
+                            print(60 * "=")
+                            for b in trainer.model.blocks:
+                                b.cell.train_mode()
