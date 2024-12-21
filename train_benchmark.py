@@ -142,8 +142,8 @@ if __name__ == "__main__":
                             env=environment,
                             state_mean=state_mean,
                             state_std=state_std,
-                            num_eval_ep=args["num_eval_ep"],
-                            max_test_ep_len=args["max_eval_ep_len"]
+                            num_eval_ep=args.num_eval_ep,
+                            max_test_ep_len=args.max_eval_ep_len
                         )
                         return get_normalized_score(
                             return_mean
