@@ -149,8 +149,8 @@ if __name__ == "__main__":
                               batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
                               std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
     model = model.to(device)
-    """if gpu:
-        torch.compile(model=model, mode="max-autotune")"""
+    if gpu:
+        torch.compile(model=model, mode="max-autotune")
     optimizer = Lamb(
         model.parameters(),
         lr=args["lr"],
