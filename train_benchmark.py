@@ -102,7 +102,7 @@ if __name__ == "__main__":
             for batch_size in batch_sizes:
                 embed_dim = 2*batch_size
                 for lr in lrs:
-    
+                    settings = f"{K}-{batch_size}-{lr}"
                     random.seed(seed)
                     np.random.seed(seed)
                     torch.manual_seed(seed)
@@ -110,7 +110,7 @@ if __name__ == "__main__":
                     if args.use_wandb:
                         wandb.login()
                         wandb.init(
-                            name=args.env + "-" + args.dataset,
+                            name=args.env + "-" + args.dataset+settings,
                             project="Reinformer",
                             config=vars(args)
                         )
@@ -204,7 +204,7 @@ if __name__ == "__main__":
                             d4rl_norm_scores.append(evaluator(trainer.model))
                             print(60 * "=")
                             if args["use_wandb"]:
-                                wandb.log({f"Normalized_Score_{env}": d4rl_norm_scores[-1]})
+                                wandb.log({f"Normalized_Score_{env}_{settings}": d4rl_norm_scores[-1]})
                             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
                             print(60 * "=")
                             for b in trainer.model.blocks:
