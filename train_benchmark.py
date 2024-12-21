@@ -102,7 +102,7 @@ if __name__ == "__main__":
             for batch_size in batch_sizes:
                 embed_dim = 2*batch_size
                 for lr in lrs:
-                    settings = f"{K}-{batch_size}-{lr}"
+                    settings = f"-{K}-{batch_size}-{lr}"
                     random.seed(seed)
                     np.random.seed(seed)
                     torch.manual_seed(seed)
