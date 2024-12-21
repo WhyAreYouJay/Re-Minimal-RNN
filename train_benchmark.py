@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument("--env", choices=["halfcheetah", "walker2d", "hopper"], default="halfcheetah")
     parser.add_argument("--env_discrete", type=bool, default=False)
     parser.add_argument("--dataset", choices=["medium", "medium_expert", "medium_replay"], type=str, default="medium")
-    parser.add_argument("--num_eval_ep", type=int, default=2)
+    parser.add_argument("--num_eval_ep", type=int, default=3)
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str,
                         default="deep_learning_rl_sm/benchmarks/data/halfcheetah_medium_expert-v2.hdf5")
@@ -70,7 +70,7 @@ def parse_args():
     parser.add_argument("--wd", type=float, default=1e-2)
     parser.add_argument("--warmup_steps", type=int, default=5000)
     parser.add_argument("--max_iters", type=int, default=20)
-    parser.add_argument("--num_steps_per_iter", type=int, default=300)
+    parser.add_argument("--num_steps_per_iter", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--init_temperature", type=float, default=0.1)
     parser.add_argument("--eps", type=float, default=1e-8)
