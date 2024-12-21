@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deep_learning_rl_sm.neuralnets.minGRU import BlockV3
+from deep_learning_rl_sm.neuralnets.minGRU import minGRUCell
+from deep_learning_rl_sm.neuralnets.minLSTM import minLSTMCell
 from deep_learning_rl_sm.neuralnets.nets import Actor
-from deep_learning_rl_sm.neuralnets.nets import TB
 
 
 class minGRU_Reinformer(nn.Module):
@@ -11,7 +11,6 @@ class minGRU_Reinformer(nn.Module):
             self,
             state_dim,
             act_dim,
-            n_blocks,
             h_dim,
             n_layers,
             drop_p,
@@ -22,8 +21,9 @@ class minGRU_Reinformer(nn.Module):
             device,
             conv=True,
             max_timestep=4096,
-            expansion_factor=2,
+            expansion_factor=1.5,
             kernel_size=4,
+            block_type = "mingru",
             std_cond_on_input=False):
         super().__init__()
         self.num_actions = 7
@@ -33,18 +33,12 @@ class minGRU_Reinformer(nn.Module):
 
         # minGRU blocks
         self.num_inputs = 3
-        # seq_len_in = self.num_inputs * context_len
         self.blocks = [  # Consider trying BlockV2
-            BlockV3(self.h_dim, n_layers, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+            minGRUCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                    conv=conv) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
                     conv=conv)
-            for _ in range(n_layers)
-        ]
-        """self.blocks = [TB(h_dim, 15, 8, drop_p, 3, mgdt=False, dt_mask=False) for _ in
-                               range(4)]"""
-        for b in self.blocks:
-            b.compile()
+            for _ in range(n_layers)]
         self.min_gru_stacked = nn.Sequential(*self.blocks)
-        self.min_gru_stacked.compile()
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim, device=device)
         self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0, device=device)

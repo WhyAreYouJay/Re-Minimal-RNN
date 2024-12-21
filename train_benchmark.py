@@ -52,14 +52,13 @@ class D4RLDataset(Dataset):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type", choices=["reinformer"], default="reinformer")
-    parser.add_argument("--env", choices=["halfcheetah", "walker2d", "hopper"], default="hopper")
+    parser.add_argument("--env", choices=["halfcheetah", "walker2d", "hopper"], default="halfcheetah")
     parser.add_argument("--env_discrete", type=bool, default=False)
     parser.add_argument("--dataset", choices=["medium", "medium_expert", "medium_replay"], type=str, default="medium")
-    parser.add_argument("--num_eval_ep", type=int, default=10)
+    parser.add_argument("--num_eval_ep", type=int, default=2)
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str,
                         default="deep_learning_rl_sm/benchmarks/data/halfcheetah_medium_expert-v2.hdf5")
-    parser.add_argument("--n_blocks", type=int, default=4)
     parser.add_argument("--embed_dim", type=int, default=256)
     parser.add_argument('--K', type=int, default=20)
     parser.add_argument("--n_layers", type=int, default=3)
@@ -71,11 +70,12 @@ def parse_args():
     parser.add_argument("--wd", type=float, default=1e-2)
     parser.add_argument("--warmup_steps", type=int, default=5000)
     parser.add_argument("--max_iters", type=int, default=20)
-    parser.add_argument("--num_steps_per_iter", type=int, default=5000)
+    parser.add_argument("--num_steps_per_iter", type=int, default=300)
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--init_temperature", type=float, default=0.1)
     parser.add_argument("--eps", type=float, default=1e-8)
     parser.add_argument("--conv", type=float, default=False)
+    parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
 
     # use_wandb = False
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         scale = 5000
         env_name = "HalfCheetah"
     observations, acts, rew_to_gos, state_mean, state_std = benchmark_data(fp)
-    environment = gym.make(env_name + "-v2")
+    environment = gym.make(env_name + "-v4")
 
 
     def get_normalized_score(score, env=env):
@@ -142,15 +142,15 @@ if __name__ == "__main__":
     # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
     args = vars(args)
     target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
-    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, n_blocks=args["n_blocks"],
+    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim,
                               h_dim=args["embed_dim"], n_layers=args["n_layers"],
                               drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
                               target_entropy=target_entropy, discrete=args["env_discrete"],
                               batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
-                              std_cond_on_input=args["std_cond_on_input"])
+                              std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
     model = model.to(device)
-    if gpu:
-        torch.compile(model=model, mode="max-autotune")
+    """if gpu:
+        torch.compile(model=model, mode="max-autotune")"""
     optimizer = Lamb(
         model.parameters(),
         lr=args["lr"],
@@ -182,12 +182,12 @@ if __name__ == "__main__":
         # Eval
         with torch.no_grad():
             for b in trainer.model.blocks:
-                b.min_gru.eval_mode()
+                b.cell.eval_mode()
             d4rl_norm_scores.append(evaluator(trainer.model))
             print(60 * "=")
-            if args.use_wandb:
+            if args["use_wandb"]:
                 wandb.log({f"Normalized_Score_{env}": d4rl_norm_scores[-1]})
             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
             print(60 * "=")
             for b in trainer.model.blocks:
-                b.min_gru.train_mode()
+                b.cell.train_mode()

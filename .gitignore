@@ -1,0 +1,9 @@
+wandb/*
+deep_learning_rl_sm/trainer/__pycache__/
+deep_learning_rl_sm/neuralnets/__pycache__/
+deep_learning_rl_sm/benchmarks/__pycache__/
+deep_learning_rl_sm/benchmarks/data/
+deep_learning_rl_sm/__pycache__/
+__pycache__/
+data/
+

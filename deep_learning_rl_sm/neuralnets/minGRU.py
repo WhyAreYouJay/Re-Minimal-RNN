@@ -6,15 +6,11 @@ from torch import nn
 def g(x):
     return torch.where(x >= 0, x + 0.5, torch.sigmoid(x))
 
-@torch.compile
+#@torch.compile
 def log_g(x):
     return torch.where(x >= 0, (F.relu(x) + 0.5).log(), -F.softplus(-x))
-    x_neg = x < 0
-    lg = (F.relu(x) + 0.5).log()
-    lg[x_neg] = -F.softplus(-x)[x_neg]
-    return lg
 
-@torch.compile
+#@torch.compile
 def parallel_scan_log(log_coefficients, log_values):
     # log_coefficients: (batch_size, device, input_size)
     # log_values: (batch_size, device + 1, input_size)
@@ -28,7 +24,7 @@ class Conv1dLayer(Module):
         super().__init__()
         self.kernel_size = kernel_size
         self.net = nn.Conv1d(dim, dim, kernel_size = kernel_size, groups = dim)
-    @torch.compile()
+    #@torch.compile()
     def forward(self, x):
         x = x.transpose(1, 2) # b n d -> b d n
         x = F.pad(x, (self.kernel_size - 1, 0), value = 0.)
@@ -71,7 +67,7 @@ class minGRU(Module):
     def train_mode(self):
         self.log_h = log_g(torch.zeros((self.batch_size, 1, self.exp_dim), device = self.log_h.device))
     
-    @torch.compile
+    #@torch.compile
     def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, device, input_size)
         # h_0: (batch_size, 1, hidden_size)
@@ -90,21 +86,21 @@ class CausalDepthWiseConv1d(Module):
             nn.Conv1d(dim, dim, kernel_size = kernel_size, groups = dim, device = device),
             nn.Conv1d(dim, dim, kernel_size = 1, device = device)
         )
-    @torch.compile
+    #@torch.compile
     def forward(self, x):
         x = x.transpose(1, 2) # b n d -> b d n
         x = F.pad(x, (self.kernel_size - 1, 0), value = 0.)
         x = self.net(x)
         return x.transpose(1, 2) # b d n -> b n d    
     
-class BlockV3(Module):
+class minGRUCell(Module):
     """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
-    def __init__(self,dim,n_layers,drop_p,kernel_size,expansion_factor,batch_size,device, conv, mult=4):
+    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, mult=4):
         """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
         super().__init__()
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else torch.nn.Identity() #Conv1dLayer(dim,kernel_size)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
-        self.min_gru = minGRU(dim,batch_size,device,expansion_factor)
+        self.cell = minGRU(dim,batch_size,device,expansion_factor)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
         self.mlp = nn.Sequential(
                 nn.Linear(dim, mult * dim, device = device),
@@ -112,11 +108,11 @@ class BlockV3(Module):
                 nn.Linear(mult * dim, dim, device = device),
                 nn.Dropout(drop_p),
             )
-    @torch.compile
+    #@torch.compile
     def forward(self,x):
         residual = x
         x = self.conv(x) + residual
         x = self.ln1(x)
-        x = self.min_gru(x) + residual
+        x = self.cell(x) + residual
         x = self.ln2(x)
         return self.mlp(x)
