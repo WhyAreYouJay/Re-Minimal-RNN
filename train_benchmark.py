@@ -209,3 +209,4 @@ if __name__ == "__main__":
                             print(60 * "=")
                             for b in trainer.model.blocks:
                                 b.cell.train_mode()
+                    wandb.finish()
