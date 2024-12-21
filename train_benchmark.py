@@ -204,7 +204,7 @@ if __name__ == "__main__":
                             d4rl_norm_scores.append(evaluator(trainer.model))
                             print(60 * "=")
                             if args["use_wandb"]:
-                                wandb.log({f"Normalized_Score_{env}_{settings}": d4rl_norm_scores[-1]})
+                                wandb.log({f"Normalized_Score_{env}{settings}": d4rl_norm_scores[-1]})
                             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
                             print(60 * "=")
                             for b in trainer.model.blocks:
