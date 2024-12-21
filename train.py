@@ -40,11 +40,11 @@ parser.add_argument("--seed", type=int, default=2024)
 parser.add_argument("--init_temperature", type=float, default=0.1)
 parser.add_argument("--eps", type=float, default=1e-8)
 parser.add_argument("--std_cond_on_input", type=bool, default=False)
-# use_wandb = False
 parser.add_argument("--use_wandb", action='store_true', default=False)
 args = parser.parse_args()
 
 if args.use_wandb:
+    wandb.login()
     wandb.init(
         name=args.env + "-" + args.dataset,
         project="Reinformer",

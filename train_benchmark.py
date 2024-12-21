@@ -96,6 +96,7 @@ if __name__ == "__main__":
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     if args.use_wandb:
+        wandb.login()
         wandb.init(
             name=args.env + "-" + args.dataset,
             project="Reinformer",
@@ -184,7 +185,8 @@ if __name__ == "__main__":
                 b.min_gru.eval_mode()
             d4rl_norm_scores.append(evaluator(trainer.model))
             print(60 * "=")
-            wandb.log({f"Normalized_Score_{env}": d4rl_norm_scores[-1]})
+            if args.use_wandb:
+                wandb.log({f"Normalized_Score_{env}": d4rl_norm_scores[-1]})
             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
             print(60 * "=")
             for b in trainer.model.blocks:
