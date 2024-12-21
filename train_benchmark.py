@@ -67,7 +67,7 @@ def parse_args():
     # parser.add_argument("--tau", type=float, default=0.99)
     # parser.add_argument("--batch_size", type=int, default=128)
     # parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--wd", type=float, default=1e-2)
+    parser.add_argument("--wd", type=float, default=1e-4)
     parser.add_argument("--warmup_steps", type=int, default=5000)
     parser.add_argument("--max_iters", type=int, default=20)
     parser.add_argument("--num_steps_per_iter", type=int, default=300)
@@ -167,8 +167,8 @@ if __name__ == "__main__":
                                             batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
                                             std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
                     model = model.to(device)
-                    """if gpu:
-                        torch.compile(model=model, mode="max-autotune")"""
+                    if gpu:
+                        torch.compile(model=model, mode="max-autotune")
                     optimizer = Lamb(
                         model.parameters(),
                         lr=args["lr"],
