@@ -152,32 +152,32 @@ if __name__ == "__main__":
 
                     state_dim, act_dim = observations[0].shape[1], acts[0].shape[1]
                     # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
-                    args = vars(args)
-                    args["tau"] = taus[args["env"]][args["dataset"]]
-                    args["K"] = K
-                    args["batch_size"] = batch_size
-                    args["embed_dim"] = embed_dim
-                    args["lr"] = lr
-                    args["seed"] = seed
-                    target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
+                    args_dict = vars(args)
+                    args_dict["tau"] = taus[args_dict["env"]][args_dict["dataset"]]
+                    args_dict["K"] = K
+                    args_dict["batch_size"] = batch_size
+                    args_dict["embed_dim"] = embed_dim
+                    args_dict["lr"] = lr
+                    args_dict["seed"] = seed
+                    target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
                     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim,
-                                            h_dim=args["embed_dim"], n_layers=args["n_layers"],
-                                            drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                                            target_entropy=target_entropy, discrete=args["env_discrete"],
-                                            batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
-                                            std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
+                                            h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"],
+                                            drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
+                                            target_entropy=target_entropy, discrete=args_dict["env_discrete"],
+                                            batch_size=args_dict["batch_size"], device=device, max_timestep=max_ep_len, conv=args_dict["conv"],
+                                            std_cond_on_input=args_dict["std_cond_on_input"], block_type=args_dict["block_type"])
                     model = model.to(device)
                     if gpu:
                         torch.compile(model=model, mode="max-autotune")
                     optimizer = Lamb(
                         model.parameters(),
-                        lr=args["lr"],
-                        weight_decay=args["wd"],
-                        eps=args["eps"],
+                        lr=args_dict["lr"],
+                        weight_decay=args_dict["wd"],
+                        eps=args_dict["eps"],
                     )
                     scheduler = torch.optim.lr_scheduler.LambdaLR(
                         optimizer,
-                        lambda steps: min((steps + 1) / args["warmup_steps"], 1)
+                        lambda steps: min((steps + 1) / args_dict["warmup_steps"], 1)
                     )
                     # perhaps dynamically incease K
                     dataset = D4RLDataset(observations, acts, rew_to_gos, K)
@@ -190,12 +190,12 @@ if __name__ == "__main__":
                         generator=torch.Generator().manual_seed(seed)
                     )
                     trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
-                                    parsed_args=args, batch_size=args["batch_size"], device=device)
+                                    parsed_args=args_dict, batch_size=args_dict["batch_size"], device=device)
                     if gpu:
                         torch.backends.cudnn.benchmark = True
                     d4rl_norm_scores = []
-                    for it in range(args["max_iters"]):
-                        outputs = trainer.train_iteration_benchmark(num_steps=args['num_steps_per_iter'], iter_num=it + 1,
+                    for it in range(args_dict["max_iters"]):
+                        outputs = trainer.train_iteration_benchmark(num_steps=args_dict['num_steps_per_iter'], iter_num=it + 1,
                                                                     print_logs=True)
                         # Eval
                         with torch.no_grad():
@@ -203,7 +203,7 @@ if __name__ == "__main__":
                                 b.cell.eval_mode()
                             d4rl_norm_scores.append(evaluator(trainer.model))
                             print(60 * "=")
-                            if args["use_wandb"]:
+                            if args_dict["use_wandb"]:
                                 wandb.log({f"Normalized_Score_{env}{settings}": d4rl_norm_scores[-1]})
                             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
                             print(60 * "=")
