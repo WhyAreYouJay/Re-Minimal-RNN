@@ -153,7 +153,7 @@ if __name__ == "__main__":
                     state_dim, act_dim = observations[0].shape[1], acts[0].shape[1]
                     # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
                     args = vars(args)
-                    args["tau"] = taus[args.env][args.dataset]
+                    args["tau"] = taus[args["env"]][args["dataset"]]
                     args["K"] = K
                     args["batch_size"] = batch_size
                     args["embed_dim"] = embed_dim
