@@ -111,7 +111,7 @@ class minLSTMCell(Module):
     #@torch.compile
     def forward(self,x):
         residual = x
-        if self.conv == None:
+        if self.conv is not None:
             x = self.conv(x) + residual
             x = self.ln1(x)
         x = self.cell(x) + residual
