@@ -108,7 +108,7 @@ if __name__ == "__main__":
                     random.seed(seed)
                     np.random.seed(seed)
                     if gpu:
-                        torch.cuda.seed_all(seed)
+                        torch.cuda.seed_all()
                     rng = np.random.default_rng(seed)
                     if args.use_wandb:
                         wandb.login()
