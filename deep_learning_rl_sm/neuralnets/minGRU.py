@@ -115,4 +115,4 @@ class minGRUCell(Module):
         x = self.ln1(x)
         x = self.cell(x) + residual
         x = self.ln2(x)
-        return self.mlp(x)
+        return self.mlp(x) + residual
