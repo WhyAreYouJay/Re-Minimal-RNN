@@ -98,7 +98,7 @@ class minLSTMCell(Module):
     def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, mult=4):
         """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
         super().__init__()
-        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else torch.nn.Identity() #Conv1dLayer(dim,kernel_size)
+        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
         self.cell = minLSTM(dim,batch_size,device,expansion_factor)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
@@ -111,8 +111,9 @@ class minLSTMCell(Module):
     #@torch.compile
     def forward(self,x):
         residual = x
-        x = self.conv(x) + residual
-        x = self.ln1(x)
+        if self.conv == None:
+            x = self.conv(x) + residual
+            x = self.ln1(x)
         x = self.cell(x) + residual
         x = self.ln2(x)
         return self.mlp(x) + residual
