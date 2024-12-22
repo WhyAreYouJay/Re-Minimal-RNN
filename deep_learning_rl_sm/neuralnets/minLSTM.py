@@ -108,12 +108,15 @@ class minLSTMCell(Module):
                 nn.Linear(mult * dim, dim, device = device),
                 nn.Dropout(drop_p),
             )
+        self.ln3 = torch.nn.LayerNorm(dim, device = device)
     #@torch.compile
     def forward(self,x):
         residual = x
         if self.conv is not None:
             x = self.conv(x) + residual
             x = self.ln1(x)
+            residual = x
         x = self.cell(x) + residual
         x = self.ln2(x)
-        return self.mlp(x) + residual
+        residual = x
+        return self.ln3(self.mlp(x) + residual)
