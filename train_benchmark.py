@@ -37,7 +37,7 @@ class D4RLDataset(Dataset):
         return len(self.s)
 
     def __getitem__(self, idx):
-        si = self.rng(0, self.s_shape[0] - self.seq_len)
+        si = self.rng(0, max(self.s_shape[0] - self.seq_len, 0))
         s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][
                                                                                           si:si + self.seq_len]
         pad_len = self.seq_len - s.shape[0]
