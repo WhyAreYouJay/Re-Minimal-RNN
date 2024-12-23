@@ -124,9 +124,9 @@ class minGRUCell(Module):
 
 
 class minGRUBlock(Module):
-    """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
+    """This Version corresponds to what has been done in https://github.com/cheind/mingru/blob/main/mingru/modules.py"""
     def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, n_layers, mult=4):
-        """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
+        """This Version corresponds to what has been done in https://github.com/cheind/mingru/blob/main/mingru/modules.py"""
         super().__init__()
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.cells = []
