@@ -130,7 +130,7 @@ class minLSTMBlock(Module):
         self.cells = []
         self.lns = []
         for i in range(n_layers):
-            self.cells.append(minGRU(dim,batch_size,device,expansion_factor))
+            self.cells.append(minLSTM(dim,batch_size,device,expansion_factor))
             self.lns.append(nn.LayerNorm(dim, device = device))
         self.cells = nn.ModuleList(self.cells)
         self.lns = nn.ModuleList(self.lns)
