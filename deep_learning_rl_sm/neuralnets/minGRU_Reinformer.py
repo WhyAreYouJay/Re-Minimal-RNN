@@ -22,6 +22,7 @@ class minGRU_Reinformer(nn.Module):
             conv=True,
             max_timestep=4096,
             expansion_factor=1.5,
+            mult = 4,
             kernel_size=4,
             block_type = "mingru",
             std_cond_on_input=False):
@@ -35,8 +36,8 @@ class minGRU_Reinformer(nn.Module):
         self.num_inputs = 3
         self.blocks = [  # Consider trying BlockV2
             minGRUCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                    conv=conv) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                    conv=conv)
+                    conv=conv, mult=mult) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                    conv=conv, mult=mult)
             for _ in range(n_layers)]
         self.min_gru_stacked = nn.Sequential(*self.blocks)
         # projection heads (project to embedding) /same as paper
