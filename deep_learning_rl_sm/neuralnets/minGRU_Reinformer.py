@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deep_learning_rl_sm.neuralnets.minGRU import minGRUCell
-from deep_learning_rl_sm.neuralnets.minLSTM import minLSTMCell
+from deep_learning_rl_sm.neuralnets.minGRU import minGRUCell, minGRUBlock
+from deep_learning_rl_sm.neuralnets.minLSTM import minLSTMCell, minLSTMBlock
 from deep_learning_rl_sm.neuralnets.nets import Actor
 
 
@@ -22,9 +22,9 @@ class minGRU_Reinformer(nn.Module):
             conv=True,
             max_timestep=4096,
             expansion_factor=1.5,
-            mult = 4,
             kernel_size=4,
             block_type = "mingru",
+            stacked = False,
             std_cond_on_input=False):
         super().__init__()
         self.num_actions = 7
@@ -34,12 +34,17 @@ class minGRU_Reinformer(nn.Module):
 
         # minGRU blocks
         self.num_inputs = 3
-        self.blocks = [  # Consider trying BlockV2
-            minGRUCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                    conv=conv, mult=mult) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                    conv=conv, mult=mult)
-            for _ in range(n_layers)]
-        self.min_gru_stacked = nn.Sequential(*self.blocks)
+        if not stacked:
+            self.blocks = [  # Consider trying BlockV2
+                minGRUCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                        conv=conv) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                        conv=conv)
+                for _ in range(n_layers)]
+            self.min_gru_stacked = nn.Sequential(*self.blocks)
+        else:
+            self.min_gru_stacked = minGRUBlock(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                        conv=conv, n_layers=n_layers) if block_type == "mingru" else minLSTMBlock(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                        conv=conv, n_layers=n_layers) 
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim, device=device)
         self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0, device=device)
