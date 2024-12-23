@@ -207,7 +207,11 @@ if __name__ == "__main__":
                         # Eval
                         with torch.no_grad():
                             for b in trainer.model.blocks:
-                                b.cell.eval_mode()
+                                if not args["stacked"]:
+                                    b.cell.eval_mode()
+                                else:
+                                    for cell in b.cells:
+                                        cell.eval_mode()
                             d4rl_norm_scores.append(evaluator(trainer.model))
                             print(60 * "=")
                             if args_dict["use_wandb"]:
@@ -215,5 +219,9 @@ if __name__ == "__main__":
                             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
                             print(60 * "=")
                             for b in trainer.model.blocks:
-                                b.cell.train_mode()
+                                if not args["stacked"]:
+                                    b.cell.train_mode()
+                                else:
+                                    for cell in b.cells:
+                                        cell.train_mode()
                     wandb.finish()
