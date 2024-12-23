@@ -208,8 +208,8 @@ if __name__=="__main__":
                 print(60 * "=")
                 for b in trainer.model.blocks:
                     if not args["stacked"]:
-                        b.cell.eval_mode()
+                        b.cell.train_mode()
                     else:
                         for cell in b.cells:
-                            cell.eval_mode()
+                            cell.train_mode()
         wandb.finish()
