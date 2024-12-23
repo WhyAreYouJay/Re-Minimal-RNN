@@ -74,7 +74,9 @@ class minLSTM(nn.Module):
         # Use parallel_scan_log to compute the hidden state
         h_t = parallel_scan_log(log_f, torch.cat([self.log_h, log_i + log_tilde_h], dim=1))
 
-        return self.down_projection(h_t)  # Return the hidden state
+        if self.down_projection is not None:
+            return self.down_projection(h_t)
+        return h_t
 
   
 class CausalDepthWiseConv1d(Module):
