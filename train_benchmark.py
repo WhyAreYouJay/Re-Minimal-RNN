@@ -77,6 +77,7 @@ def parse_args():
     parser.add_argument("--conv", type=float, default=False)
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
+    parser.add_argument("--stacked", type=bool, default=False)
     parser.add_argument("--expansion_factor", type=float, default=1.5)
     parser.add_argument("--mult", type=float, default=4.0)
 
@@ -167,7 +168,7 @@ if __name__ == "__main__":
                     args_dict["seed"] = seed
                     target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
                     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
-                                            h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"],
+                                            h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args["stacked"],
                                             drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],
                                             batch_size=args_dict["batch_size"], device=device, max_timestep=max_ep_len, conv=args_dict["conv"],
