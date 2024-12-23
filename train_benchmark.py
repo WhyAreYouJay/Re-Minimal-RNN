@@ -77,6 +77,8 @@ def parse_args():
     parser.add_argument("--conv", type=float, default=False)
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
+    parser.add_argument("--expansion_factor", type=float, default=1.5)
+    parser.add_argument("--mult", type=float, default=4.0)
 
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
@@ -164,7 +166,7 @@ if __name__ == "__main__":
                     args_dict["lr"] = lr
                     args_dict["seed"] = seed
                     target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
-                    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim,
+                    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
                                             h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"],
                                             drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],
