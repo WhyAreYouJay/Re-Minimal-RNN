@@ -128,6 +128,7 @@ class minGRUBlock(Module):
     def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, n_layers, mult=4):
         """This Version corresponds to what has been done in https://github.com/cheind/mingru/blob/main/mingru/modules.py"""
         super().__init__()
+        self.dim = dim
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.cells = []
         for i in range(n_layers):
@@ -144,10 +145,10 @@ class minGRUBlock(Module):
     def forward(self,x):
         residual = x
         if self.conv is not None:
-            x = self.conv(nn.LayerNorm()(x)) + residual
+            x = self.conv(nn.LayerNorm(self.dim)(x)) + residual
             residual = x
         for cell in self.cells:
-            x = cell(nn.LayerNorm()(x)) + residual
+            x = cell(nn.LayerNorm(self.dim)(x)) + residual
         residual = x
         return self.mlp(self.ln3(x))
 
