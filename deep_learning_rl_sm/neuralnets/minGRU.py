@@ -39,7 +39,7 @@ class minGRU(Module):
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, bias=False, device = device)
-        self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1 else nn.Identity()
+        self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1 else None
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
 
@@ -75,7 +75,9 @@ class minGRU(Module):
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)
-        return self.down_projection(parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1)))
+        if self.down_projection is not None:
+            return self.down_projection(parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1)))
+        return parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1))
     
 class CausalDepthWiseConv1d(Module):
     def __init__(self, dim, kernel_size, device):
