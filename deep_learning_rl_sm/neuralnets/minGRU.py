@@ -105,9 +105,9 @@ class minGRUCell(Module):
         self.cell = minGRU(dim,batch_size,device,expansion_factor)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
         self.mlp = nn.Sequential(
-                nn.Linear(dim, mult * dim, device = device),
+                nn.Linear(dim, int(mult * dim), device = device),
                 nn.GELU(),#Reinformer uses GELU
-                nn.Linear(mult * dim, dim, device = device),
+                nn.Linear(int(mult * dim), dim, device = device),
                 nn.Dropout(drop_p),
             ) 
         self.ln3 = torch.nn.LayerNorm(dim, device = device)
