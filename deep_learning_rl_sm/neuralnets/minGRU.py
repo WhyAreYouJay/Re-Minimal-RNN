@@ -115,10 +115,8 @@ class minGRUCell(Module):
     def forward(self,x):
         residual = x
         if self.conv is not None:
-            x = self.conv(x) + residual
-            x = self.ln1(x)
+            x = self.conv(self.ln1(x)) + residual
             residual = x
-        x = self.cell(x) + residual
-        x = self.ln2(x)
+        x = self.cell(self.ln2(x)) + residual
         residual = x
-        return self.ln3(self.mlp(x) + residual)
+        return self.mlp(self.ln3(x)) + residual
