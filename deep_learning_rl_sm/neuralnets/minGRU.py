@@ -134,9 +134,9 @@ class minGRUBlock(Module):
             self.cells.append(minGRU(dim,batch_size,device,expansion_factor))
         self.cells = nn.ModuleList(self.cells)
         self.mlp = nn.Sequential(
-                nn.Linear(dim, mult * dim, device = device),
+                nn.Linear(dim, int(mult * dim), device = device),
                 nn.GELU(),#Reinformer uses GELU
-                nn.Linear(mult * dim, dim, device = device),
+                nn.Linear(int(mult * dim), dim, device = device),
                 nn.Dropout(drop_p),
             ) 
         self.ln3 = torch.nn.LayerNorm(dim, device = device)
