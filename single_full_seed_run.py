@@ -102,7 +102,7 @@ if __name__=="__main__":
         if args.use_wandb:
             wandb.login()
             wandb.init(
-                name=args.env + "-" + args.dataset+settings,
+                name=args.env + "-" + args.dataset+"-"+settings,
                 project="Reinformer",
                 config=vars(args)
             )
