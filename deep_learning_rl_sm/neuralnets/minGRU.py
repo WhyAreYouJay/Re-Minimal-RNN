@@ -38,7 +38,7 @@ class minGRU(Module):
         self.exp_dim = int(dim * expansion_factor)
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
-        self.f = Linear(dim, 2*self.exp_dim, bias=False, device = device)
+        self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1 else None
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
@@ -120,3 +120,34 @@ class minGRUCell(Module):
         x = self.cell(self.ln2(x)) + residual
         residual = x
         return self.mlp(self.ln3(x)) + residual
+
+
+
+class minGRUBlock(Module):
+    """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
+    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, n_layers, mult=4):
+        """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
+        super().__init__()
+        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
+        self.cells = []
+        for i in range(n_layers):
+            self.cells.append(minGRU(dim,batch_size,device,expansion_factor))
+        self.cells = nn.ModuleList(self.cells)
+        self.mlp = nn.Sequential(
+                nn.Linear(dim, mult * dim, device = device),
+                nn.GELU(),#Reinformer uses GELU
+                nn.Linear(mult * dim, dim, device = device),
+                nn.Dropout(drop_p),
+            ) 
+        self.ln3 = torch.nn.LayerNorm(dim, device = device)
+    #@torch.compile
+    def forward(self,x):
+        residual = x
+        if self.conv is not None:
+            x = self.conv(nn.LayerNorm()(x)) + residual
+            residual = x
+        for cell in self.cells:
+            x = cell(nn.LayerNorm()(x)) + residual
+        residual = x
+        return self.mlp(self.ln3(x))
+
