@@ -168,7 +168,7 @@ if __name__ == "__main__":
                     args_dict["seed"] = seed
                     target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
                     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
-                                            h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args["stacked"],
+                                            h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args_dict["stacked"],
                                             drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],
                                             batch_size=args_dict["batch_size"], device=device, max_timestep=max_ep_len, conv=args_dict["conv"],
@@ -207,7 +207,7 @@ if __name__ == "__main__":
                         # Eval
                         with torch.no_grad():
                             for b in trainer.model.blocks:
-                                if not args["stacked"]:
+                                if not args_dict["stacked"]:
                                     b.cell.eval_mode()
                                 else:
                                     for cell in b.cells:
@@ -219,7 +219,7 @@ if __name__ == "__main__":
                             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
                             print(60 * "=")
                             for b in trainer.model.blocks:
-                                if not args["stacked"]:
+                                if not args_dict["stacked"]:
                                     b.cell.train_mode()
                                 else:
                                     for cell in b.cells:
