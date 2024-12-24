@@ -46,7 +46,7 @@ class minLSTM(nn.Module):
         self.linear_f = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_i = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_h = nn.Linear(self.dim, self.exp_dim, device = device)
-        self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1 else nn.Identity()
+        self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor >= 1.01 and expansion_factor <= 0.99 else None
     
     def eval_mode(self):
         self.log_h = log_g(torch.zeros((1, 1, self.exp_dim), device = self.log_h.device))
