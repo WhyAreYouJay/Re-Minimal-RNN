@@ -143,7 +143,7 @@ class minLSTMBlock(Module):
         self.ln3 = torch.nn.LayerNorm(dim, device = device)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
     #@torch.compile
-    def forward(self,x):
+    def forward(self,x):    
         residual = x
         if self.conv is not None:
             x = self.conv(self.ln1(self.dim)(x)) + residual
