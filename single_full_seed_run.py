@@ -76,7 +76,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--init_temperature", type=float, default=0.1)
     parser.add_argument("--eps", type=float, default=1e-8)
-    parser.add_argument("--conv", type=float, default=False)
+    parser.add_argument("--conv", type=bool, default=False)
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
     parser.add_argument("--stacked", type=bool, default=False)
