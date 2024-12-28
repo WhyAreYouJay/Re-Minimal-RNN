@@ -28,7 +28,7 @@ class D4RLDataset(Dataset):
         self.s_shape = list(s[0].shape)
         self.a = a
         self.a_shape = list(a[0].shape)
-        self.rtg = rtg
+        self.rtg = [r / scale for r in rtg]
         self.rtg_shape = list(rtg[0].shape)
         self.seq_len = seq_len
         self.rng = random.randint
