@@ -33,7 +33,7 @@ class Conv1dLayer(Module):
     
     
 class minLSTM(nn.Module):
-    def __init__(self, dim,batch_size, device, expansion_factor = 1., n_heads = 1):
+    def __init__(self, dim,batch_size, device, expansion_factor = 1., n_heads = 1, dropout = 0.):
         super(minLSTM, self).__init__()
         self.dim = dim
         #self.input_shape = input_shape
@@ -47,6 +47,7 @@ class minLSTM(nn.Module):
         self.linear_i = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_h = nn.Linear(self.dim, self.exp_dim, device = device)
         self.down_projection = Linear(self.exp_dim,dim * n_heads, bias=False, device = device) if expansion_factor != 1.0 else None
+        self.drop_proj = nn.Dropout(dropout)
     
     def eval_mode(self):
         self.log_h = log_g(torch.zeros((1, 1, self.exp_dim), device = self.log_h.device))
@@ -79,7 +80,7 @@ class minLSTM(nn.Module):
         else:
             h = h_t
         tup = h.chunk(self.n_heads, dim = -1)
-        return sum(tup)/len(tup)
+        return self.drop_proj(sum(tup)/len(tup))
 
   
 class CausalDepthWiseConv1d(Module):
@@ -105,7 +106,7 @@ class minLSTMCell(Module):
         super().__init__()
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
-        self.cell = minLSTM(dim,batch_size,device,expansion_factor, n_heads)
+        self.cell = minLSTM(dim,batch_size,device,expansion_factor, n_heads, drop_p)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
         self.mlp = nn.Sequential(
                 nn.Linear(dim, int(mult * dim), device = device),
@@ -133,7 +134,7 @@ class minLSTMBlock(Module):
         self.cells = []
         self.lns = []
         for i in range(n_layers):
-            self.cells.append(minLSTM(dim,batch_size,device,expansion_factor, n_heads))
+            self.cells.append(minLSTM(dim,batch_size,device,expansion_factor, n_heads, drop_p))
             self.lns.append(nn.LayerNorm(dim, device = device))
         self.cells = nn.ModuleList(self.cells)
         self.lns = nn.ModuleList(self.lns)

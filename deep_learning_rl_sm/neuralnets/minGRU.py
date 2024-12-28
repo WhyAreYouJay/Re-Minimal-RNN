@@ -32,7 +32,7 @@ class Conv1dLayer(Module):
         return x.transpose(1, 2) # b d n -> b n d
 
 class minGRU(Module):
-    def __init__(self, dim,batch_size, device, expansion_factor = 1., n_heads = 1):
+    def __init__(self, dim,batch_size, device, expansion_factor = 1., n_heads = 1, dropout = 0.):
         super().__init__()
         self.dim=dim
         self.n_heads = n_heads
@@ -41,6 +41,7 @@ class minGRU(Module):
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.down_projection = Linear(self.exp_dim, n_heads * dim, bias=False, device = device) if expansion_factor != 1.0 else None
+        self.drop_proj = nn.Dropout(dropout)
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
 
@@ -81,7 +82,7 @@ class minGRU(Module):
         else:
             h =  parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1))
         tup = h.chunk(self.n_heads, dim = -1)
-        return sum(tup)/len(tup)
+        return self.drop_proj(sum(tup)/len(tup))
         
     
 class CausalDepthWiseConv1d(Module):
@@ -107,7 +108,7 @@ class minGRUCell(Module):
         super().__init__()
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
-        self.cell = minGRU(dim,batch_size,device,expansion_factor, n_heads)
+        self.cell = minGRU(dim,batch_size,device,expansion_factor, n_heads, drop_p)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
         self.mlp = nn.Sequential(
                 nn.Linear(dim, int(mult * dim), device = device),
@@ -137,7 +138,7 @@ class minGRUBlock(Module):
         self.cells = []
         self.lns = []
         for i in range(n_layers):
-            self.cells.append(minGRU(dim,batch_size,device,expansion_factor, n_heads))
+            self.cells.append(minGRU(dim,batch_size,device,expansion_factor, n_heads, drop_p))
             self.lns.append(nn.LayerNorm(dim, device = device))
         self.cells = nn.ModuleList(self.cells)
         self.lns = nn.ModuleList(self.lns)
