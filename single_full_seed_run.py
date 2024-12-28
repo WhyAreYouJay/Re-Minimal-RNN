@@ -44,7 +44,6 @@ class D4RLDataset(Dataset):
             s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][si:si + self.seq_len]
             t = torch.arange(si, si+self.seq_len,1)
             mask = torch.ones(self.seq_len)
-            return (t,s,a,rtg,mask)
         else:
             pad_len = self.seq_len - self.s[idx].shape[0]
             t = torch.arange(start=0, end=self.seq_len, step=1)
@@ -52,8 +51,8 @@ class D4RLDataset(Dataset):
             a = torch.cat([torch.from_numpy(a), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
             rtg = torch.cat([torch.from_numpy(rtg), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
             mask = torch.cat([torch.ones(self.seq_len - pad_len), torch.zeros(pad_len)], dim=0)
-            print(t.shape, s.shape, a.shape, rtg.shape, mask.shape)
-            return (t, s, a, rtg, mask)
+        print(t.shape, s.shape, a.shape, rtg.shape, mask.shape)
+        return (t, s, a, rtg, mask)
 
 
 def parse_args():
