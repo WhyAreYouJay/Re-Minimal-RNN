@@ -37,16 +37,20 @@ class D4RLDataset(Dataset):
         return len(self.s)
 
     def __getitem__(self, idx):
-        si = self.rng(0, max(self.s_shape[0] - self.seq_len, 0))
-        s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][
-                                                                                          si:si + self.seq_len]
-        pad_len = self.seq_len - s.shape[0]
-        s = torch.cat([torch.from_numpy(s), torch.zeros([pad_len] + self.s_shape[1:])], dim=0)
-        a = torch.cat([torch.from_numpy(a), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
-        rtg = torch.cat([torch.from_numpy(rtg), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
-        mask = torch.cat([torch.ones(self.seq_len - pad_len), torch.zeros(pad_len)], dim=0)
-        t = torch.arange(start=0, end=self.seq_len, step=1)
-        return (t, s, a, rtg, mask)
+        if self.s[idx].shape[0] > self.seq_len:
+            si = self.rng(0, self.s_shape[0] - self.seq_len)
+            s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][si:si + self.seq_len]
+            t = torch.arange(si, si+self.seq_len,1)
+            mask = torch.ones(self.seq_len)
+            return (t,s,a,rtg,mask)
+        else:
+            pad_len = self.seq_len - self.s[idx].shape[0]
+            t = torch.arange(start=0, end=self.seq_len, step=1)
+            s = torch.cat([torch.from_numpy(s), torch.zeros([pad_len] + self.s_shape[1:])], dim=0)
+            a = torch.cat([torch.from_numpy(a), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
+            rtg = torch.cat([torch.from_numpy(rtg), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
+            mask = torch.cat([torch.ones(self.seq_len - pad_len), torch.zeros(pad_len)], dim=0)
+            return (t, s, a, rtg, mask)
 
 
 def parse_args():
@@ -68,7 +72,7 @@ def parse_args():
     # parser.add_argument("--batch_size", type=int, default=128)
     # parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--wd", type=float, default=1e-4)
-    parser.add_argument("--warmup_steps", type=int, default=5000)
+    parser.add_argument("--warmup_steps", type=int, default=10000)
     parser.add_argument("--max_iters", type=int, default=20)
     parser.add_argument("--num_steps_per_iter", type=int, default=5000)
     # parser.add_argument("--seed", type=int, default=2024)
@@ -81,7 +85,7 @@ def parse_args():
     parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
     parser.add_argument("--n_heads", type=int, default=4)
-    parser.add_argument("--acc_grad", type=int, default=10)
+    parser.add_argument("--acc_grad", type=int, default=8)
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
     return parser.parse_args()
@@ -179,7 +183,7 @@ if __name__ == "__main__":
                         torch.compile(model=model, mode="max-autotune")
                     optimizer = Lamb(
                         model.parameters(),
-                        lr=args_dict["lr"] * args_dict["acc_grad"],
+                        lr=args_dict["lr"],
                         weight_decay=args_dict["wd"],
                         eps=args_dict["eps"],
                     )

@@ -48,9 +48,8 @@ def benchmark_data(filepath):
         d.append(done)
         ret_sum.append(final_rew)
     obs_concat = np.concatenate(obs, axis=0)
-    state_mean, state_std = np.mean(obs_concat, axis=0), np.std(obs_concat, axis=0) + 1e-8
+    state_mean, state_std = np.mean(obs_concat, axis=0), np.std(obs_concat, axis=0) + 1e-6
     obs = [(ob - state_mean)/state_std for ob in obs] #Normalize
-    del ret_sum,r,d
     return obs,act,rtg,state_mean,state_std
 
 def extract_dataset(data):
