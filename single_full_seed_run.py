@@ -40,11 +40,13 @@ class D4RLDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.s[idx].shape[0] > self.seq_len:
+            print("full seq")
             si = self.rng(0, self.s_shape[0] - self.seq_len)
             s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][si:si + self.seq_len]
             t = torch.arange(si, si+self.seq_len,1)
             mask = torch.ones(self.seq_len)
         else:
+            print("part seq")
             pad_len = self.seq_len - self.s[idx].shape[0]
             t = torch.arange(start=0, end=self.seq_len, step=1)
             s = torch.cat([torch.from_numpy(s), torch.zeros([pad_len] + self.s_shape[1:])], dim=0)
