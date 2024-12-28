@@ -78,9 +78,10 @@ def parse_args():
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
     parser.add_argument("--stacked", type=bool, default=False)
-    parser.add_argument("--expansion_factor", type=float, default=1.5)
+    parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
-
+    parser.add_argument("--n_heads", type=int, default=4)
+    parser.add_argument("--acc_grad", type=int, default=10)
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
     return parser.parse_args()
@@ -169,7 +170,7 @@ if __name__ == "__main__":
                     target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
                     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
                                             h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args_dict["stacked"],
-                                            drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
+                                            drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"], n_heads= args_dict["n_heads"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],
                                             batch_size=args_dict["batch_size"], device=device, max_timestep=max_ep_len, conv=args_dict["conv"],
                                             std_cond_on_input=args_dict["std_cond_on_input"], block_type=args_dict["block_type"])
@@ -178,7 +179,7 @@ if __name__ == "__main__":
                         torch.compile(model=model, mode="max-autotune")
                     optimizer = Lamb(
                         model.parameters(),
-                        lr=args_dict["lr"],
+                        lr=args_dict["lr"] * args_dict["acc_grad"],
                         weight_decay=args_dict["wd"],
                         eps=args_dict["eps"],
                     )
@@ -197,7 +198,7 @@ if __name__ == "__main__":
                         generator=torch.Generator().manual_seed(seed)
                     )
                     trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
-                                    parsed_args=args_dict, batch_size=args_dict["batch_size"], device=device)
+                                    parsed_args=args_dict, batch_size=args_dict["batch_size"], device=device, acc_grad = args_dict["acc_grad"])
                     if gpu:
                         torch.backends.cudnn.benchmark = True
                     d4rl_norm_scores = []

@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 class Trainer:
     def __init__(self, model : nn.Module, optimizer: Optimizer, scheduler, batch_size: int = 32,
-                 learning_rate: float = 1e-3, num_epochs: int = 10, device=None,dataset=None,data_loader = None,parsed_args=None):
+                 learning_rate: float = 1e-3, num_epochs: int = 10, device=None,dataset=None,data_loader = None,parsed_args=None, acc_grad = 1):
         self.tau = parsed_args["tau"]
         self.grad_norm = parsed_args["grad_norm"]
         self.model = model.to(device)
@@ -25,6 +25,7 @@ class Trainer:
         # Define DataLoader
         """if dataset is not None:
             self.data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)"""
+        self.acc_grad = acc_grad
 
         # Define optimizer and loss function
         self.optimizer = optimizer
@@ -344,7 +345,7 @@ class Trainer:
         for i in range(num_steps):
             if i%50 == 0:
                 print(f"Iteration {i}, time: {time.time() - train_start}")
-            train_loss = self.train_step_benchmark()
+            train_loss = self.train_step_benchmark((i+1) % self.acc_grad == 0)
             #wandb.log({"train_loss":np.mean(train_loss)})
             train_losses.append(train_loss)
             if self.scheduler is not None:
@@ -413,7 +414,7 @@ class Trainer:
                     traj_mask,
                 )
         
-    def train_step_benchmark(self):
+    def train_step_benchmark(self, update):
             timesteps, states, actions, rtg, traj_mask = self.get_next()
             timesteps = timesteps.to(self.device)      # B x T
             states = states.to(self.device)            # B x T x state_dim
@@ -459,17 +460,18 @@ class Trainer:
             entropy = actions_dist_preds.entropy().sum(axis=2).mean()
             action_loss = -(log_likelihood + self.model.temp().detach() * entropy)
             wandb.log({"rtg_loss": returns_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":self.model.temp().detach() * entropy})
-            loss = returns_to_go_loss + action_loss
+            loss = (returns_to_go_loss + action_loss) / self.acc_grad
             
             # optimizer -----------------------------------------------
-            self.optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
-                self.grad_norm
-            )
-            self.optimizer.step()
-            
+            if update:
+                torch.nn.utils.clip_grad_norm_(
+                    self.model.parameters(),
+                    self.grad_norm
+                )
+                self.optimizer.step()
+                
+                self.optimizer.zero_grad()
             # scheduler -----------------------------------------------
             self.log_temperature_optimizer.zero_grad()
             temperature_loss = (

@@ -19,6 +19,7 @@ class minGRU_Reinformer(nn.Module):
             discrete,
             batch_size,
             device,
+            n_heads,
             conv=True,
             max_timestep=4096,
             expansion_factor=1.5,
@@ -37,14 +38,14 @@ class minGRU_Reinformer(nn.Module):
         self.num_inputs = 3
         if not stacked:
             self.blocks = [  # Consider trying BlockV2
-                minGRUCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                        conv=conv, mult = mult) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                minGRUCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device, n_heads = n_heads,
+                        conv=conv, mult = mult) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor,n_heads = n_heads, batch_size=batch_size, device=device,
                         conv=conv, mult = mult)
                 for _ in range(n_layers)]
         else:
-            self.blocks = [minGRUBlock(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+            self.blocks = [minGRUBlock(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device, n_heads = n_heads,
                         conv=conv, n_layers=n_layers, mult = mult) if block_type == "mingru" else minLSTMBlock(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                        conv=conv, n_layers=n_layers, mult = mult)]
+                        conv=conv, n_layers=n_layers, n_heads = n_heads, mult = mult)]
         
         self.min_gru_stacked = nn.Sequential(*self.blocks)
         # projection heads (project to embedding) /same as paper

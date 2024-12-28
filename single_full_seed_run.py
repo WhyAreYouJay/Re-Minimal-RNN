@@ -61,13 +61,13 @@ def parse_args():
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str,
                         default="deep_learning_rl_sm/benchmarks/data/halfcheetah_medium_expert-v2.hdf5")
-    parser.add_argument("--embed_dim", type=int, default=256)
+    parser.add_argument("--embed_dim", type=int, default=128)
     parser.add_argument('--K', type=int, default=20)
     parser.add_argument("--n_layers", type=int, default=3)
     parser.add_argument("--dropout_p", type=float, default=0.1)
     parser.add_argument("--grad_norm", type=float, default=0.25)
     parser.add_argument("--tau", type=float, default=0.99)
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--wd", type=float, default=1e-4)
     parser.add_argument("--warmup_steps", type=int, default=5000)
@@ -80,8 +80,10 @@ def parse_args():
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
     parser.add_argument("--stacked", type=bool, default=False)
-    parser.add_argument("--expansion_factor", type=float, default=1.5)
+    parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
+    parser.add_argument("--n_heads", type=int, default=4)
+    parser.add_argument("--acc_grad", type=int, default=10)
 
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
@@ -157,7 +159,7 @@ if __name__=="__main__":
         target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
         model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
                                 h_dim=args["embed_dim"], n_layers=args["n_layers"], stacked = args["stacked"],
-                                drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
+                                drop_p=args["dropout_p"], init_tmp=args["init_temperature"], n_heads = args["n_heads"],
                                 target_entropy=target_entropy, discrete=args["env_discrete"],
                                 batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
                                 std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
@@ -166,7 +168,7 @@ if __name__=="__main__":
             torch.compile(model=model, mode="max-autotune")"""
         optimizer = Lamb(
             model.parameters(),
-            lr=args["lr"],
+            lr=args["lr"] * args["acc_grad"],
             weight_decay=args["wd"],
             eps=args["eps"],
         )
@@ -185,7 +187,7 @@ if __name__=="__main__":
             generator=torch.Generator().manual_seed(seed)
         )
         trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
-                        parsed_args=args, batch_size=args["batch_size"], device=device)
+                        parsed_args=args, batch_size=args["batch_size"], device=device, acc_grad=args["acc_grad"])
         if gpu:
             torch.backends.cudnn.benchmark = True
         d4rl_norm_scores = []
