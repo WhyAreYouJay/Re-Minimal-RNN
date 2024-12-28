@@ -83,7 +83,7 @@ def parse_args():
     parser.add_argument("--stacked", type=bool, default=False)
     parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
-    parser.add_argument("--n_heads", type=int, default=4)
+    parser.add_argument("--n_heads", type=int, default=1)
     parser.add_argument("--acc_grad", type=int, default=1)
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
