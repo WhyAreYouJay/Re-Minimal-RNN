@@ -30,7 +30,7 @@ class D4RLDataset(Dataset):
         self.s_shape = list(s[0].shape)
         self.a = a
         self.a_shape = list(a[0].shape)
-        self.rtg = rtg / scale
+        self.rtg = [r / scale for r in rtg]
         self.rtg_shape = list(rtg[0].shape)
         self.seq_len = seq_len
         self.rng = random.randint
@@ -40,11 +40,10 @@ class D4RLDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.s[idx].shape[0] > self.seq_len:
-            si = self.rng(0, self.s_shape[0] - self.seq_len)
+            si = self.rng(0, self.s[idx].shape[0] - self.seq_len)
             s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][si:si + self.seq_len]
             t = torch.arange(si, si+self.seq_len,1)
             mask = torch.ones(self.seq_len)
-            return (t,s,a,rtg,mask)
         else:
             pad_len = self.seq_len - self.s[idx].shape[0]
             t = torch.arange(start=0, end=self.seq_len, step=1)
@@ -52,7 +51,7 @@ class D4RLDataset(Dataset):
             a = torch.cat([torch.from_numpy(a), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
             rtg = torch.cat([torch.from_numpy(rtg), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
             mask = torch.cat([torch.ones(self.seq_len - pad_len), torch.zeros(pad_len)], dim=0)
-            return (t, s, a, rtg, mask)
+        return (t, s, a, rtg, mask)
 
 
 def parse_args():
