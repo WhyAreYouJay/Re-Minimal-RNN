@@ -168,7 +168,7 @@ if __name__=="__main__":
             torch.compile(model=model, mode="max-autotune")"""
         optimizer = Lamb(
             model.parameters(),
-            lr=args["lr"] * args["acc_grad"],
+            lr=args["lr"],
             weight_decay=args["wd"],
             eps=args["eps"],
         )
