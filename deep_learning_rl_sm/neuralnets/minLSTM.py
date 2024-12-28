@@ -146,7 +146,7 @@ class minLSTMBlock(Module):
     def forward(self,x):    
         residual = x
         if self.conv is not None:
-            x = self.conv(self.ln1(self.dim)(x)) + residual
+            x = self.conv(self.ln1(x)) + residual
             residual = x
         for i, cell in enumerate(self.cells):
             x = cell(self.lns[i](x)) + residual
