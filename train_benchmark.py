@@ -28,7 +28,7 @@ class D4RLDataset(Dataset):
         self.s_shape = list(s[0].shape)
         self.a = a
         self.a_shape = list(a[0].shape)
-        self.rtg = [r / scale for r in rtg]
+        self.rtg = rtg
         self.rtg_shape = list(rtg[0].shape)
         self.seq_len = seq_len
         self.rng = random.randint
@@ -38,10 +38,11 @@ class D4RLDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.s[idx].shape[0] > self.seq_len:
-            si = self.rng(0, self.s[idx].shape[0] - self.seq_len)
+            si = self.rng(0, self.s_shape[0] - self.seq_len)
             s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][si:si + self.seq_len]
             t = torch.arange(si, si+self.seq_len,1)
             mask = torch.ones(self.seq_len)
+            return (t,s,a,rtg,mask)
         else:
             pad_len = self.seq_len - self.s[idx].shape[0]
             t = torch.arange(start=0, end=self.seq_len, step=1)
@@ -49,7 +50,7 @@ class D4RLDataset(Dataset):
             a = torch.cat([torch.from_numpy(a), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
             rtg = torch.cat([torch.from_numpy(rtg), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
             mask = torch.cat([torch.ones(self.seq_len - pad_len), torch.zeros(pad_len)], dim=0)
-        return (t, s, a, rtg, mask)
+            return (t, s, a, rtg, mask)
 
 
 def parse_args():
@@ -83,7 +84,6 @@ def parse_args():
     parser.add_argument("--stacked", type=bool, default=False)
     parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
-    parser.add_argument("--n_heads", type=int, default=1)
     parser.add_argument("--acc_grad", type=int, default=1)
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
@@ -173,7 +173,7 @@ if __name__ == "__main__":
                     target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
                     model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
                                             h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args_dict["stacked"],
-                                            drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"], n_heads= args_dict["n_heads"],
+                                            drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],
                                             batch_size=args_dict["batch_size"], device=device, max_timestep=max_ep_len, conv=args_dict["conv"],
                                             std_cond_on_input=args_dict["std_cond_on_input"], block_type=args_dict["block_type"])

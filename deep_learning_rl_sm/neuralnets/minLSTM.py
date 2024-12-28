@@ -33,20 +33,19 @@ class Conv1dLayer(Module):
     
     
 class minLSTM(nn.Module):
-    def __init__(self, dim,batch_size, device, expansion_factor = 1., n_heads = 1, dropout = 0.):
+    def __init__(self, dim,batch_size, device, expansion_factor = 1., dropout = 0.):
         super(minLSTM, self).__init__()
         self.dim = dim
         #self.input_shape = input_shape
-        self.n_heads = n_heads
         self.dim=dim
-        self.exp_dim = int(dim * expansion_factor * n_heads)
+        self.exp_dim = int(dim * expansion_factor)
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         # Initialize the linear layers for the forget gate, input gate, and hidden state transformation
         self.linear_f = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_i = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_h = nn.Linear(self.dim, self.exp_dim, device = device)
-        self.down_projection = Linear(self.exp_dim,dim * n_heads, bias=False, device = device) if expansion_factor != 1.0 else None
+        self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1.0 else None
         self.drop_proj = nn.Dropout(dropout)
     
     def eval_mode(self):
@@ -79,8 +78,7 @@ class minLSTM(nn.Module):
             h =  self.down_projection(h_t)
         else:
             h = h_t
-        tup = h.chunk(self.n_heads, dim = -1)
-        return self.drop_proj(sum(tup)/len(tup))
+        return self.drop_proj(h)
 
   
 class CausalDepthWiseConv1d(Module):
@@ -101,12 +99,12 @@ class CausalDepthWiseConv1d(Module):
     
 class minLSTMCell(Module):
     """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
-    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, n_heads, conv, mult=4):
+    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, mult=4):
         """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
         super().__init__()
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
-        self.cell = minLSTM(dim,batch_size,device,expansion_factor, n_heads, drop_p)
+        self.cell = minLSTM(dim,batch_size,device,expansion_factor, drop_p)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
         self.mlp = nn.Sequential(
                 nn.Linear(dim, int(mult * dim), device = device),
@@ -127,14 +125,14 @@ class minLSTMCell(Module):
 
 class minLSTMBlock(Module):
     """This Version corresponds to what has been done in https://github.com/cheind/mingru/blob/main/mingru/modules.py"""
-    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, n_heads, conv, n_layers, mult=4):
+    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, n_layers, mult=4):
         """This Version corresponds to what has been done in https://github.com/cheind/mingru/blob/main/mingru/modules.py"""
         super().__init__()
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.cells = []
         self.lns = []
         for i in range(n_layers):
-            self.cells.append(minLSTM(dim,batch_size,device,expansion_factor, n_heads, drop_p))
+            self.cells.append(minLSTM(dim,batch_size,device,expansion_factor, drop_p))
             self.lns.append(nn.LayerNorm(dim, device = device))
         self.cells = nn.ModuleList(self.cells)
         self.lns = nn.ModuleList(self.lns)
