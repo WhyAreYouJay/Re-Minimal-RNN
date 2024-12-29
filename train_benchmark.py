@@ -219,6 +219,7 @@ if __name__ == "__main__":
                                 wandb.log({f"Normalized_Score_{env}{settings}": d4rl_norm_scores[-1]})
                             print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
                             print(60 * "=")
+                            trainer.model.train()
                             for b in trainer.model.blocks:
                                 if not args_dict["stacked"]:
                                     b.cell.train_mode()
