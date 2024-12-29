@@ -387,7 +387,7 @@ class Trainer:
 
         return logs
     
-    def get_next(self) -> tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor]:
+    def get_next(self):
         try:
                 (
                     timesteps,
@@ -415,7 +415,7 @@ class Trainer:
                 )
         
     def train_step_benchmark(self, update):
-            (timesteps, states, actions, rtg, traj_mask) = self.get_next()
+            timesteps, states, actions, rtg, traj_mask = self.get_next()
             timesteps = timesteps.to(self.device)      # B x T
             states = states.to(self.device)            # B x T x state_dim
             actions = actions.to(self.device)          # B x T x act_dim
@@ -433,9 +433,14 @@ class Trainer:
                 actions=actions,
                 returns_to_go=rtg,
             )
-            last_masked_idx = traj_mask.sum(dim=-1)
-            returns_to_go_target = torch.eye(torch.clone(rtg)[:,last_masked_idx]) #.view(-1, 1)[traj_mask[:,-1].view(-1,) > 0]
-            returns_to_go_preds = torch.eye(returns_to_go_preds[:,last_masked_idx])#.view(-1, 1)[traj_mask[:,-1].view(-1,) > 0]
+            returns_to_go_target = torch.clone(rtg).view(
+                -1, 1
+            )[
+                traj_mask.view(-1,) > 0
+            ]
+            returns_to_go_preds = returns_to_go_preds.view(-1, 1)[
+                traj_mask.view(-1,) > 0
+            ]
 
             # returns_to_go_loss -----------------------------------------
             norm = returns_to_go_target.abs().mean()
@@ -447,10 +452,12 @@ class Trainer:
             )
             # action_loss ------------------------------------------------
             actions_target = torch.clone(actions)
-            log_likelihood = torch.eye(actions_dist_preds.log_prob(
+            log_likelihood = actions_dist_preds.log_prob(
                 actions_target
-                )[:,last_masked_idx]).sum(axis=-1).mean()#[traj_mask[:,-1] > 0].mean()
-            entropy = torch.eye(actions_dist_preds.entropy()[:,last_masked_idx]).sum(axis=-1).mean()
+                ).sum(axis=2)[
+                traj_mask > 0
+            ].mean()
+            entropy = actions_dist_preds.entropy().sum(axis=2).mean()
             action_loss = -(log_likelihood + self.model.temp().detach() * entropy)
             wandb.log({"rtg_loss": returns_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":self.model.temp().detach() * entropy})
             loss = (returns_to_go_loss + action_loss) / self.acc_grad
