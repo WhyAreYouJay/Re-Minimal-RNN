@@ -188,7 +188,7 @@ if __name__ == "__main__":
                         lambda steps: min((steps + 1) / args_dict["warmup_steps"], 1)
                     )
                     # perhaps dynamically incease K
-                    dataset = D4RLDataset(observations, acts, rew_to_gos, K)
+                    dataset = D4RLDataset(observations, acts, rew_to_gos, K,scale=scale)
                     traj_data_loader = DataLoader(
                         dataset,
                         batch_size=batch_size,
