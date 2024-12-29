@@ -437,10 +437,10 @@ class Trainer:
                 -1, 1
             )[
                 traj_mask.view(-1,) > 0
-            ][-1]
+            ]
             returns_to_go_preds = returns_to_go_preds.view(-1, 1)[
                 traj_mask.view(-1,) > 0
-            ][-1]
+            ]
 
             # returns_to_go_loss -----------------------------------------
             norm = returns_to_go_target.abs().mean()
