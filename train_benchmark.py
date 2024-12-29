@@ -44,9 +44,9 @@ class D4RLDataset(Dataset):
         else:
             pad_len = self.seq_len - self.s[idx].shape[0]
             t = torch.arange(start=0, end=self.seq_len, step=1)
-            s = torch.cat([torch.from_numpy(s), torch.zeros([pad_len] + self.s_shape[1:])], dim=0)
-            a = torch.cat([torch.from_numpy(a), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
-            rtg = torch.cat([torch.from_numpy(rtg), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
+            s = torch.cat([torch.from_numpy(self.s[idx]), torch.zeros([pad_len] + self.s_shape[1:])], dim=0)
+            a = torch.cat([torch.from_numpy(self.a[idx]), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
+            rtg = torch.cat([torch.from_numpy(self.rtg[idx]), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
             mask = torch.cat([torch.ones(self.seq_len - pad_len), torch.zeros(pad_len)], dim=0)
         return (t, s, a, rtg, mask)
     
