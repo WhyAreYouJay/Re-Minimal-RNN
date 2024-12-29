@@ -433,13 +433,13 @@ class Trainer:
                 actions=actions,
                 returns_to_go=rtg,
             )
-            returns_to_go_target = torch.clone(rtg).view(
+            returns_to_go_target = torch.clone(rtg)[:,-1].view(
                 -1, 1
             )[
-                traj_mask.view(-1,) > 0
+                traj_mask[:,-1].view(-1,) > 0
             ]
-            returns_to_go_preds = returns_to_go_preds.view(-1, 1)[
-                traj_mask.view(-1,) > 0
+            returns_to_go_preds = returns_to_go_preds[:,-1].view(-1, 1)[
+                traj_mask[:,-1].view(-1,) > 0
             ]
 
             # returns_to_go_loss -----------------------------------------
@@ -454,10 +454,10 @@ class Trainer:
             actions_target = torch.clone(actions)
             log_likelihood = actions_dist_preds.log_prob(
                 actions_target
-                ).sum(axis=2)[
-                traj_mask > 0
+                )[:,-1].sum(axis=-1)[
+                traj_mask[:,-1] > 0
             ].mean()
-            entropy = actions_dist_preds.entropy().sum(axis=2).mean()
+            entropy = actions_dist_preds.entropy()[:,-1].sum(axis=-1).mean()
             action_loss = -(log_likelihood + self.model.temp().detach() * entropy)
             wandb.log({"rtg_loss": returns_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":self.model.temp().detach() * entropy})
             loss = (returns_to_go_loss + action_loss) / self.acc_grad
