@@ -39,6 +39,7 @@ class minGRU(Module):
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
+        self.drop_f = nn.Dropout(dropout)
         self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device) if expansion_factor != 1.0 else None
         self.drop_proj = nn.Dropout(dropout)
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
@@ -72,7 +73,7 @@ class minGRU(Module):
     def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, seq_len, hidden_size)
         # h_0: (batch_size, 1, hidden_size)
-        k,h_x = self.f(x).chunk(2,dim = -1)
+        k,h_x = self.drop_f(self.f(x)).chunk(2,dim = -1)
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)

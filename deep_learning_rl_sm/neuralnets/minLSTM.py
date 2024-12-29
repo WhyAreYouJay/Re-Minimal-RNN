@@ -42,7 +42,8 @@ class minLSTM(nn.Module):
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         # Initialize the linear layers for the forget gate, input gate, and hidden state transformation
-        self.linear_f = nn.Linear(self.dim, self.exp_dim, device = device)
+        self.linear = nn.Linear(self.dim, 3*self.exp_dim, device = device)
+        self.drop_f = nn.Dropout(dropout)
         self.linear_i = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_h = nn.Linear(self.dim, self.exp_dim, device = device)
         self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1.0 else None
@@ -60,15 +61,13 @@ class minLSTM(nn.Module):
         x_t: (batch_size, input_size) - input at time step t
         """
         # Forget gate: log_f_t = log(sigmoid(W_f * x_t))
-        k_f = self.linear_f(x_t)
+        k_f, k_i, k_h = self.drop_f(self.linear(x_t)).chunk(3, dim = -1)
         log_f = -F.softplus(-k_f) # (batch_size, units)
-
-        k_i = self.linear_i(x_t)
         log_i = -F.softplus(-k_i)
 
 
         # Hidden state: log_tilde_h_t = log(W_h * x_t)
-        log_tilde_h = log_g(self.linear_h(x_t))  # (batch_size, units)
+        log_tilde_h = log_g(k_h)  # (batch_size, units)
         
         
         # Use parallel_scan_log to compute the hidden state
