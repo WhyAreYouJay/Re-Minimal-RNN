@@ -50,7 +50,7 @@ class D4RLDataset(Dataset):
                 mask = torch.cat([torch.ones(si), torch.zeros(pad_len)], dim=0)
             else:
                 s, a, rtg = torch.from_numpy(self.s[idx][si-self.seq_len:si]), torch.from_numpy(self.a[idx][si-self.seq_len:si]), torch.from_numpy(self.rtg[idx][si-self.seq_len:si])
-                t = torch.arange(si, si+self.seq_len,1)
+                t = torch.arange(si-self.seq_len, si,1)
                 mask = torch.ones(self.seq_len)
         else:
             pad_len = self.seq_len - self.s[idx].shape[0]
