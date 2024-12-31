@@ -91,7 +91,7 @@ if __name__ == "__main__":
     seeds = [0,42,2024]
     Ks = [20]
     batch_sizes = [128]
-    lrs = [10**-3]
+    lrs = [10**-4]
     taus = {"halfcheetah":{"medium": 0.9, "medium_replay": 0.9, "medium_expert": 0.9},"hopper":{"medium": 0.999, "medium_replay": 0.999, "medium_expert": 0.9},"walker2d":{"medium": 0.9, "medium_replay": 0.99, "medium_expert": 0.99}}
     total_runs = len(seeds) * len(Ks) * len(batch_sizes) * len(lrs)
     current_run = 1
