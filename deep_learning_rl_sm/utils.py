@@ -35,18 +35,12 @@ def benchmark_data(filepath):
         ind_end = trajs[i+1]+1
         l.append(ind_end - ind_st)
         traj_rews = rewards[ind_st:ind_end]
-        final_rew = sum(traj_rews)
-        cumsum_rewards = np.cumsum(traj_rews)
-        rew_to_go = final_rew - cumsum_rewards
+        rew_to_go = np.cumsum(traj_rews[::-1])[::-1]
         ob = observations[ind_st:ind_end]
         ac = actions[ind_st:ind_end]
-        done = dones[ind_st:ind_end]
-        r.append(traj_rews)
         obs.append(ob)
         act.append(ac)
         rtg.append(rew_to_go)
-        d.append(done)
-        ret_sum.append(final_rew)
     obs_concat = np.concatenate(obs, axis=0)
     state_mean, state_std = np.mean(obs_concat, axis=0), np.std(obs_concat, axis=0) + 1e-6
     obs = [(ob - state_mean)/state_std for ob in obs] #Normalize
