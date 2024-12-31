@@ -49,7 +49,7 @@ class minGRU_Reinformer(nn.Module):
         self.min_gru_stacked = nn.Sequential(*self.blocks)
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim, device=device)
-        self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, padding_idx=0, device=device)
+        self.embed_timestep = nn.Embedding(max_timestep, self.h_dim, device=device)
         self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim, device=device)
         self.embed_rtg = nn.Linear(1, self.h_dim, device=device)
         self.embed_action = nn.Linear(self.a_dim, self.h_dim, device=device)
