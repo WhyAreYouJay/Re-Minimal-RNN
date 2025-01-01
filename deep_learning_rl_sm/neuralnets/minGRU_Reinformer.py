@@ -58,7 +58,7 @@ class minGRU_Reinformer(nn.Module):
         self.predict_rtg = nn.Linear(self.h_dim, 1, device=device)
         # stochastic action (output is distribution)
         self.predict_action = Actor(self.a_dim, self.h_dim, discrete=discrete, device=device,
-                                    std_cond_on_input=std_cond_on_input)
+                                    std_cond_on_input=std_cond_on_input, embed_action = self.embed_action)
         # self.predict_state = nn.Linear(self.h_dim, np.prod(self.s_dim))
 
         # For entropy /same as paper
@@ -112,8 +112,10 @@ class minGRU_Reinformer(nn.Module):
         # the 3 input variables at that timestep (s_t, R_t, a_t) in sequence.
         h = h.reshape(B, T, self.num_inputs, self.h_dim).permute(0, 2, 1, 3)
 
-        # get predictions
-        rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
+        # get predictions (h_dim x 1)
+        
+        rtg_preds = torch.matmul(h[:,0],self.embed_rtg.weight)
+        #rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
         action_dist_preds = self.predict_action(h[:, 1])  # predict action given s, R
         # state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
         return rtg_preds, action_dist_preds

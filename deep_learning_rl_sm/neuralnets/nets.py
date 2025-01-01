@@ -8,9 +8,9 @@ from torch import distributions as torch_dist
 
 
 class Actor(nn.Module):
-    def __init__(self, num_actions, h_dim, device, discrete=False, std_cond_on_input=False):
+    def __init__(self, num_actions, h_dim, device, discrete=False, std_cond_on_input=False, embed_action = None):
         super().__init__()
-        self.mu = nn.Linear(h_dim, num_actions, device=device)
+        self.mu = embed_action #nn.Linear(h_dim, num_actions, device=device)
         self.std_linear_layer = std_cond_on_input
         self.log_std = nn.Parameter(
             torch.zeros(num_actions, dtype=torch.float32, device=device)) if not std_cond_on_input \
@@ -20,7 +20,8 @@ class Actor(nn.Module):
         self.categorical_dist = discrete
 
     def forward(self, x):
-        action_mean = torch.tanh(self.mu(x))
+        w = self.mu.weight
+        action_mean = torch.tanh(torch.matmul(x,w))
         action_std = torch.exp(self.log_std.clamp(self.log_std_min, self.log_std_max)) if not self.std_linear_layer \
             else torch.exp(self.log_std(x).clamp(self.log_std_min, self.log_std_max))
         return torch_dist.Normal(action_mean,action_std)
