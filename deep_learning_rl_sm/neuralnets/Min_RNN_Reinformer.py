@@ -55,7 +55,7 @@ class minGRU_Reinformer(nn.Module):
         self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim, device=device)
         self.embed_rtg = nn.Linear(1, self.h_dim, device=device)
         self.embed_action = nn.Linear(self.a_dim, self.h_dim, device=device)
-
+        print(f"Reuse Embeddings: {reuse_emb}")
         # prediction heads /same as paper
         self.predict_rtg = nn.Linear(self.h_dim, 1, device=device)
         # stochastic action (output is distribution)
