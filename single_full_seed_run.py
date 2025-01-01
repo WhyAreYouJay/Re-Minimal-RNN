@@ -96,8 +96,10 @@ def parse_args():
 
 
 if __name__=="__main__":
+    args = parse_args()
+    print(args.reuse_emb)
+    print(vars(args)["reuse_emb"])
     for seed in [0,42,2024]:
-        args = parse_args()
         settings = f"{args.K}-{args.batch_size}-{args.lr}"
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         gpu = str(device) == "cuda"
