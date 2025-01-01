@@ -27,7 +27,7 @@ def benchmark_data(filepath):
     rewards = file['rewards'][()]
     terminals = file['terminals'][()]
     timeouts = file['timeouts'][()]
-    dones = terminals | timeouts
+    dones = terminals
     trajs = [-1]+[i for i,x in enumerate(dones) if x] #gets trajectory indices
     obs,act,r,rtg,d,l,ret_sum = [],[],[],[],[],[],[]
     for i in range(len(trajs)-1):
