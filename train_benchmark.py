@@ -172,7 +172,7 @@ if __name__ == "__main__":
                                             h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args_dict["stacked"],
                                             drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],
-                                            batch_size=args_dict["batch_size"], device=device, max_timestep=max_ep_len, conv=args_dict["conv"],
+                                            batch_size=args_dict["batch_size"], device=device, conv=args_dict["conv"],
                                             std_cond_on_input=args_dict["std_cond_on_input"], block_type=args_dict["block_type"])
                     model = model.to(device)
                     if gpu:
