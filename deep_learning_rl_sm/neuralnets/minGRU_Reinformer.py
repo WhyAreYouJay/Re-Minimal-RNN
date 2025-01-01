@@ -79,7 +79,7 @@ class minGRU_Reinformer(nn.Module):
         # print(states.shape)
         timesteps = torch.cat([timesteps , timesteps[:,-1].unsqueeze(-1)+ 1], dim = 1)
         embd_t = self.embed_timestep(timesteps)
-        print("embed_t dim: ", embd_t.shape)
+        #print("embed_t dim: ", embd_t.shape)
         # time embeddings ≈ pos embeddings
         # add time embedding to each embedding below for temporal context
         embd_s = self.embed_state(states) + embd_t[:,:-1,:]
@@ -102,7 +102,7 @@ class minGRU_Reinformer(nn.Module):
         )
 
         #h = self.embed_ln(h)
-        print("h shape: ", h.shape)
+        #print("h shape: ", h.shape)
         # transformer and prediction
         h = self.min_gru_stacked(h)
 
