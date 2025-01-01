@@ -26,12 +26,14 @@ class minGRU_Reinformer(nn.Module):
             kernel_size=4,
             block_type = "mingru",
             stacked = False,
+            reuse_emb = False,
             std_cond_on_input=False):
         super().__init__()
         self.num_actions = 7
         self.a_dim = act_dim if not discrete else self.num_actions
         self.s_dim = state_dim
         self.h_dim = h_dim
+        self.reuse_emb = reuse_emb
 
         # minGRU blocks
         self.num_inputs = 3
@@ -58,7 +60,7 @@ class minGRU_Reinformer(nn.Module):
         self.predict_rtg = nn.Linear(self.h_dim, 1, device=device)
         # stochastic action (output is distribution)
         self.predict_action = Actor(self.a_dim, self.h_dim, discrete=discrete, device=device,
-                                    std_cond_on_input=std_cond_on_input, embed_action = self.embed_action)
+                                    std_cond_on_input=std_cond_on_input, embed_action = self.embed_action, reuse_emb = reuse_emb)
         # self.predict_state = nn.Linear(self.h_dim, np.prod(self.s_dim))
 
         # For entropy /same as paper
@@ -99,7 +101,7 @@ class minGRU_Reinformer(nn.Module):
             .reshape(B, self.num_inputs * T, self.h_dim)
         )
 
-        h = self.embed_ln(h)
+        #h = self.embed_ln(h)
         # print("h shape: ", h.shape)
         # transformer and prediction
         h = self.min_gru_stacked(h)
@@ -114,9 +116,10 @@ class minGRU_Reinformer(nn.Module):
         h = h.reshape(B, T, self.num_inputs, self.h_dim).permute(0, 2, 1, 3)
 
         # get predictions (h_dim x 1)
-        
-        rtg_preds = torch.matmul(h[:,0] - embd_t[:,1:,:],self.embed_rtg.weight)
-        #rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
+        if self.reuse_emb:
+            rtg_preds = torch.matmul(h[:,0] - embd_t[:,1:,:],self.embed_rtg.weight)
+        else:
+            rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
         action_dist_preds = self.predict_action(h[:, 1] - embd_t[:,1:,:])  # predict action given s, R
         # state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
         return rtg_preds, action_dist_preds

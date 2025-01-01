@@ -87,6 +87,8 @@ def parse_args():
     parser.add_argument("--mult", type=float, default=4.0)
     parser.add_argument("--acc_grad", type=int, default=1)
     parser.add_argument("--graph_name", type=str, default="")
+    parser.add_argument("--reuse_emb", type=bool, default=False)
+    
 
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
@@ -162,7 +164,7 @@ if __name__=="__main__":
         target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
         model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
                                 h_dim=args["embed_dim"], n_layers=args["n_layers"], stacked = args["stacked"],
-                                drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
+                                drop_p=args["dropout_p"], init_tmp=args["init_temperature"],reuse_emb=args["reuse_emb"],
                                 target_entropy=target_entropy, discrete=args["env_discrete"],
                                 batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
                                 std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
