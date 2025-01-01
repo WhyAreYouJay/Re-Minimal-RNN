@@ -116,10 +116,10 @@ class minGRU_Reinformer(nn.Module):
 
         # get predictions (h_dim x 1)
         if self.reuse_emb:
-            rtg_preds = torch.matmul(h[:,0] - embd_t,self.embed_rtg.weight)
+            rtg_preds = torch.matmul(h[:,0],self.embed_rtg.weight)
         else:
             rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
-        action_dist_preds = self.predict_action(h[:, 1] - embd_t)  # predict action given s, R
+        action_dist_preds = self.predict_action(h[:, 1])  # predict action given s, R
         # state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
         return rtg_preds, action_dist_preds
 
