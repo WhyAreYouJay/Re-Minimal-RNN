@@ -151,5 +151,5 @@ class minLSTMBlock(Module):
             residual = x
         for i, cell in enumerate(self.cells):
             x = cell(self.lns[i](x)) + residual
-        residual = x
+            residual = x
         return self.mlp(self.ln3(x))
