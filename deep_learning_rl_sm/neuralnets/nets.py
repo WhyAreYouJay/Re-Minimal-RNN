@@ -20,9 +20,8 @@ class Actor(nn.Module):
         self.categorical_dist = discrete
 
     def forward(self, x):
-        #w = self.mu.weight
-        #action_mean = torch.matmul(x,w).clamp(-1,1)+
-        action_mean = torch.tanh(self.mu(x))
+        w = self.mu.weight
+        action_mean = torch.matmul(x,w).clamp(-1,1)
         action_std = torch.exp(self.log_std.clamp(self.log_std_min, self.log_std_max)) if not self.std_linear_layer \
             else torch.exp(self.log_std(x).clamp(self.log_std_min, self.log_std_max))
         return torch_dist.Normal(action_mean,action_std)
