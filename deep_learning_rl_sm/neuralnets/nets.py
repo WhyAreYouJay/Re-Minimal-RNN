@@ -14,7 +14,7 @@ class Actor(nn.Module):
         if reuse_emb:
             self.mu = embed_action 
         else:
-            nn.Linear(h_dim, num_actions, device=device)
+            self.mu = nn.Linear(h_dim, num_actions, device=device)
         self.std_linear_layer = std_cond_on_input
         self.log_std = nn.Parameter(
             torch.zeros(num_actions, dtype=torch.float32, device=device)) if not std_cond_on_input \
