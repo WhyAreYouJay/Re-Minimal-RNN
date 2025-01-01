@@ -77,15 +77,14 @@ class minGRU_Reinformer(nn.Module):
     ):
         B, T, _ = states.shape
         # print(states.shape)
-        timesteps = torch.cat([timesteps , timesteps[:,-1].unsqueeze(-1)+ 1], dim = 1)
         embd_t = self.embed_timestep(timesteps)
         #print("embed_t dim: ", embd_t.shape)
         # time embeddings ≈ pos embeddings
         # add time embedding to each embedding below for temporal context
-        embd_s = self.embed_state(states) + embd_t[:,:-1,:]
-        embd_a = self.embed_action(actions) + embd_t[:,:-1,:]
+        embd_s = self.embed_state(states) + embd_t
+        embd_a = self.embed_action(actions) + embd_t
         # print(self.embed_rtg(returns_to_go).shape)
-        embd_rtg = self.embed_rtg(returns_to_go) + embd_t[:,:-1,:]
+        embd_rtg = self.embed_rtg(returns_to_go) + embd_t
         # stack states, RTGs, and actions and reshape sequence as
         # (s_0, R_0, a_0, s_1, R_1, a_1, s_2, R_2, a_2 ...)
         h = (
@@ -117,10 +116,10 @@ class minGRU_Reinformer(nn.Module):
 
         # get predictions (h_dim x 1)
         if self.reuse_emb:
-            rtg_preds = torch.matmul(h[:,0] - embd_t[:,1:,:],self.embed_rtg.weight)
+            rtg_preds = torch.matmul(h[:,0] - embd_t,self.embed_rtg.weight)
         else:
             rtg_preds = self.predict_rtg(h[:, 0])  # predict rtg given s
-        action_dist_preds = self.predict_action(h[:, 1] - embd_t[:,1:,:])  # predict action given s, R
+        action_dist_preds = self.predict_action(h[:, 1] - embd_t)  # predict action given s, R
         # state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
         return rtg_preds, action_dist_preds
 
