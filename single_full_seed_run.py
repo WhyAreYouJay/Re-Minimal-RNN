@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument("--model_type", choices=["reinformer"], default="reinformer")
     parser.add_argument("--env", choices=["halfcheetah", "walker2d", "hopper"], default="hopper")
     parser.add_argument("--env_discrete", type=bool, default=False)
-    parser.add_argument("--dataset", choices=["medium", "medium_expert", "medium_replay"], type=str, default="medium_expert")
+    parser.add_argument("--dataset", choices=["medium", "medium_expert", "medium_replay"], type=str, default="medium")
     parser.add_argument("--num_eval_ep", type=int, default=10)
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str,
@@ -166,7 +166,7 @@ if __name__=="__main__":
                                 h_dim=args["embed_dim"], n_layers=args["n_layers"], stacked = args["stacked"],
                                 drop_p=args["dropout_p"], init_tmp=args["init_temperature"],reuse_emb=args["reuse_emb"],
                                 target_entropy=target_entropy, discrete=args["env_discrete"],
-                                batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
+                                batch_size=args["batch_size"], device=device, conv=args["conv"],
                                 std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
         model = model.to(device)
         """if gpu:
