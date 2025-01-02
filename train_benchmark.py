@@ -15,7 +15,7 @@ import wandb
 from eval import Reinformer_eval
 from deep_learning_rl_sm.utils import *
 from deep_learning_rl_sm.trainer.trainer import Trainer
-from deep_learning_rl_sm.neuralnets.minGRU_Reinformer import minGRU_Reinformer
+from deep_learning_rl_sm.neuralnets.minRNN_Reinformer import minRNN_Reinformer
 from deep_learning_rl_sm.neuralnets.lamb import Lamb
 from deep_learning_rl_sm.environments import connect_four
 from torch.utils.data import Dataset, DataLoader
@@ -168,7 +168,7 @@ if __name__ == "__main__":
                     args_dict["lr"] = lr
                     args_dict["seed"] = seed
                     target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
-                    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
+                    model = minRNN_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
                                             h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args_dict["stacked"],
                                             drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],

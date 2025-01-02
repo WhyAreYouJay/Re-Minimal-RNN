@@ -23,17 +23,15 @@ def benchmark_data(filepath):
     file = h5py.File(filepath,"r+")
     actions = file['actions'][()]
     next_observations = file['next_observations'][()]
-    observations = file['observations'][()]
+    observations = np.concatenate([file['observations'][()], next_observations[-1][None,:]], axis = 0)
     rewards = file['rewards'][()]
-    terminals = file['terminals'][()]
-    timeouts = file['timeouts'][()]
-    dones = terminals | timeouts
-    trajs = [-1]+[i for i,x in enumerate(dones) if x] #gets trajectory indices
-    obs,act,r,rtg,d,l,ret_sum = [],[],[],[],[],[],[]
+    dones = (next_observations == observations[1:])[:,0]
+    dones[-1] = False
+    trajs = [-1]+[i for i,x in enumerate(dones) if not x] #gets trajectory indices
+    obs,act,rtg = [],[],[]
     for i in range(len(trajs)-1):
         ind_st = trajs[i]+1
         ind_end = trajs[i+1]+1
-        l.append(ind_end - ind_st)
         traj_rews = rewards[ind_st:ind_end]
         rew_to_go = np.cumsum(traj_rews[::-1])[::-1]
         ob = observations[ind_st:ind_end]
@@ -42,7 +40,7 @@ def benchmark_data(filepath):
         act.append(ac)
         rtg.append(rew_to_go)
     obs_concat = np.concatenate(obs, axis=0)
-    state_mean, state_std = np.mean(obs_concat, axis=0), np.std(obs_concat, axis=0) + 1e-6
+    state_mean, state_std = np.mean(obs_concat, axis=0), np.std(obs_concat, axis=0) + 1e-8
     obs = [(ob - state_mean)/state_std for ob in obs] #Normalize
     return obs,act,rtg,state_mean,state_std
 

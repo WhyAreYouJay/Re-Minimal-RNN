@@ -40,7 +40,7 @@ class minGRU(Module):
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.drop_f = nn.Dropout(dropout)
-        self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device) if expansion_factor != 1.0 else None
+        self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device)
         self.drop_proj = nn.Dropout(dropout)
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
@@ -73,15 +73,12 @@ class minGRU(Module):
     def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, seq_len, hidden_size)
         # h_0: (batch_size, 1, hidden_size)
-        k,h_x = self.drop_f(self.f(x)).chunk(2,dim = -1)
+        k,h_x = self.f(x).chunk(2,dim = -1)
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)
-        if self.down_projection is not None:
-            h =  self.down_projection(parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1)))
-        else:
-            h =  parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1))
-        return self.drop_proj(h)
+        h =  self.drop_f(parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1)))
+        return self.drop_proj(self.down_projection(h))
         
     
 class CausalDepthWiseConv1d(Module):
@@ -120,11 +117,11 @@ class minGRUCell(Module):
     def forward(self,x):
         residual = x
         if self.conv is not None:
-            x = self.conv(self.ln1(x)) + residual
+            x = self.ln1(self.conv(x) + residual)
             residual = x
-        x = self.cell(self.ln2(x)) + residual
+        x = self.ln2(self.cell(x) + residual)
         residual = x
-        return self.mlp(self.ln3(x)) + residual
+        return self.ln3(self.mlp(x) + residual)
 
 
 
