@@ -73,11 +73,11 @@ class minGRU(Module):
     def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, seq_len, hidden_size)
         # h_0: (batch_size, 1, hidden_size)
-        k,h_x = self.f(x).chunk(2,dim = -1)
+        k,h_x = self.drop_f(self.f(x)).chunk(2,dim = -1)
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)
-        h =  self.drop_f(parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1)))
+        h =  parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1))
         return self.drop_proj(self.down_projection(h))
         
     
