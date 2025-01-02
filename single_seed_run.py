@@ -67,6 +67,7 @@ def parse_args():
     parser.add_argument("--embed_dim", type=int, default=128)
     parser.add_argument('--K', type=int, default=20)
     parser.add_argument("--n_layers", type=int, default=3)
+    parser.add_argument("--n_blocks", type=int, default=4)
     parser.add_argument("--dropout_p", type=float, default=0.1)
     parser.add_argument("--grad_norm", type=float, default=0.25)
     parser.add_argument("--tau", type=float, default=0.9)
@@ -167,7 +168,7 @@ if __name__=="__main__":
     model = minRNN_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
                             h_dim=args["embed_dim"], n_layers=args["n_layers"], stacked = args["stacked"],
                             drop_p=args["dropout_p"], init_tmp=args["init_temperature"],reuse_emb=args["reuse_emb"],
-                            target_entropy=target_entropy, discrete=args["env_discrete"],
+                            target_entropy=target_entropy, discrete=args["env_discrete"],n_blocks=args["n_blocks"],
                             batch_size=args["batch_size"], device=device, conv=args["conv"],
                             std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
     model = model.to(device)

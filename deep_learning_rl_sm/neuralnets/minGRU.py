@@ -40,8 +40,8 @@ class minGRU(Module):
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.drop_f = nn.Dropout(dropout)
-        self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device)
-        self.drop_proj = nn.Dropout(dropout)
+        self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device) if expansion_factor != 0.0 else nn.Identity()
+        self.drop_proj = nn.Dropout(dropout) if expansion_factor != 0.0 else nn.Identity()
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
 
