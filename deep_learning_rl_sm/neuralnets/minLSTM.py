@@ -46,7 +46,7 @@ class minLSTM(nn.Module):
         self.drop_f = nn.Dropout(dropout)
         self.linear_i = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_h = nn.Linear(self.dim, self.exp_dim, device = device)
-        self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1.0 else None
+        self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device)
         self.drop_proj = nn.Dropout(dropout)
     
     def eval_mode(self):
@@ -72,12 +72,7 @@ class minLSTM(nn.Module):
         
         # Use parallel_scan_log to compute the hidden state
         h_t = parallel_scan_log(log_f, torch.cat([self.log_h, log_i + log_tilde_h], dim=1))
-
-        if self.down_projection is not None:
-            h =  self.down_projection(h_t)
-        else:
-            h = h_t
-        return self.drop_proj(h)
+        return self.drop_proj(self.down_projection(h_t))
 
   
 class CausalDepthWiseConv1d(Module):
