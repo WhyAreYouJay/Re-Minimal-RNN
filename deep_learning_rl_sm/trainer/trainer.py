@@ -460,18 +460,17 @@ class Trainer:
             entropy = actions_dist_preds.entropy().sum(axis=2).mean()
             action_loss = -(log_likelihood + self.model.temp().detach() * entropy)
             wandb.log({"rtg_loss": returns_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":self.model.temp().detach() * entropy})
-            loss = (returns_to_go_loss + action_loss) / self.acc_grad
+            loss = (returns_to_go_loss + action_loss)
             
             # optimizer -----------------------------------------------
+            self.optimizer.zero_grad()
             loss.backward()
-            if update:
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(),
-                    self.grad_norm
-                )
-                self.optimizer.step()
-                
-                self.optimizer.zero_grad()
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), 
+                self.grad_norm
+            )
+            self.optimizer.step()
+
             # scheduler -----------------------------------------------
             self.log_temperature_optimizer.zero_grad()
             temperature_loss = (
