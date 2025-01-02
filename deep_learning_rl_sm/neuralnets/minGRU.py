@@ -154,6 +154,6 @@ class minGRUBlock(Module):
             residual = x
         for i, cell in enumerate(self.cells):
             x = self.lns[i](cell(x) + residual)
-            residual = x
+        residual = x
         return self.ln3(self.mlp(x) + residual)
 
