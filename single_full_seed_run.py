@@ -82,7 +82,7 @@ def parse_args():
     parser.add_argument("--conv", type=bool, default=False)
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
-    parser.add_argument("--stacked", type=bool, default=False)
+    parser.add_argument("--stacked", type=bool, default=True)
     parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
     parser.add_argument("--acc_grad", type=int, default=1)
