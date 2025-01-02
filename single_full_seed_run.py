@@ -190,6 +190,7 @@ if __name__=="__main__":
             batch_size=args["batch_size"],
             shuffle=True,
             pin_memory=True,
+            drop_last=True,
             generator=torch.Generator().manual_seed(seed)
         )
         trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
