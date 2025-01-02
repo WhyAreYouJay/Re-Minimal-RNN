@@ -35,13 +35,13 @@ class minGRU(Module):
     def __init__(self, dim,batch_size, device, expansion_factor = 1., dropout = 0.):
         super().__init__()
         self.dim=dim
-        self.exp_dim = int(dim * expansion_factor) if expansion_factor != 0 else dim
+        self.exp_dim = int(dim * expansion_factor) if expansion_factor != 0.0 else dim
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.drop_f = nn.Dropout(dropout)
         self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device) if expansion_factor != 0.0 else nn.Identity()
-        self.drop_proj = nn.Dropout(dropout)
+        self.drop_proj = nn.Dropout(dropout) if expansion_factor != 0.0 else nn.Identity()
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
 
