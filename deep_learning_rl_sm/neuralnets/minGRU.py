@@ -150,10 +150,10 @@ class minGRUBlock(Module):
     def forward(self,x):
         residual = x
         if self.conv is not None:
-            x = self.conv(self.ln1(self.dim)(x)) + residual
+            x = self.ln1(self.conv(x) + residual)
             residual = x
         for i, cell in enumerate(self.cells):
-            x = cell(self.lns[i](x)) + residual
+            x = self.lns[i](cell(x) + residual)
             residual = x
-        return self.mlp(self.ln3(x)) + residual
+        return self.ln3(self.mlp(x) + residual)
 
