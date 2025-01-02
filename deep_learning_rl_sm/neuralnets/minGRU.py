@@ -35,7 +35,7 @@ class minGRU(Module):
     def __init__(self, dim,batch_size, device, expansion_factor = 1., dropout = 0.):
         super().__init__()
         self.dim=dim
-        self.exp_dim = int(dim * expansion_factor)
+        self.exp_dim = int(dim * expansion_factor) if expansion_factor != 0 else dim
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
