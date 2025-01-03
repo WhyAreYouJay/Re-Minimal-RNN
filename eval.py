@@ -113,7 +113,6 @@ def Reinformer_eval(
                     returns.append(episode_return)
                     lengths.append(episode_length)
                     print(f"Episode {i} returns : {episode_return}")
-                    print(f"Episode {i} length : {episode_length}")
                     break
     
     return np.array(returns).mean(), np.array(returns).std(), np.array(lengths).mean(), np.array(lengths).mean()

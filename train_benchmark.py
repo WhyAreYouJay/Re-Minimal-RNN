@@ -15,7 +15,7 @@ import wandb
 from eval import Reinformer_eval
 from deep_learning_rl_sm.utils import *
 from deep_learning_rl_sm.trainer.trainer import Trainer
-from deep_learning_rl_sm.neuralnets.minRNN_Reinformer import minRNN_Reinformer
+from deep_learning_rl_sm.neuralnets.minGRU_Reinformer import minGRU_Reinformer
 from deep_learning_rl_sm.neuralnets.lamb import Lamb
 from deep_learning_rl_sm.environments import connect_four
 from torch.utils.data import Dataset, DataLoader
@@ -78,7 +78,7 @@ def parse_args():
     parser.add_argument("--conv", type=float, default=False)
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
-    parser.add_argument("--stacked", type=bool, default=True)
+    parser.add_argument("--stacked", type=bool, default=False)
     parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
     parser.add_argument("--acc_grad", type=int, default=1)
@@ -90,8 +90,8 @@ def parse_args():
 if __name__ == "__main__":
     seeds = [0,42,2024]
     Ks = [20]
-    batch_sizes = [64]
-    lrs = [6*10**-4]
+    batch_sizes = [128]
+    lrs = [10**-3]
     taus = {"halfcheetah":{"medium": 0.9, "medium_replay": 0.9, "medium_expert": 0.9},"hopper":{"medium": 0.999, "medium_replay": 0.999, "medium_expert": 0.9},"walker2d":{"medium": 0.9, "medium_replay": 0.99, "medium_expert": 0.99}}
     total_runs = len(seeds) * len(Ks) * len(batch_sizes) * len(lrs)
     current_run = 1
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     for seed in seeds:
         for K in Ks:
             for batch_size in batch_sizes:
-                embed_dim = 256
+                embed_dim = 2*batch_size
                 for lr in lrs:
                     print(f"Run {current_run}/{total_runs}")
                     current_run += 1
@@ -168,11 +168,11 @@ if __name__ == "__main__":
                     args_dict["lr"] = lr
                     args_dict["seed"] = seed
                     target_entropy = -np.log(np.prod(act_dim)) if args_dict["env_discrete"] else -np.prod(act_dim)
-                    model = minRNN_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
+                    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args_dict["expansion_factor"], mult = args_dict["mult"],
                                             h_dim=args_dict["embed_dim"], n_layers=args_dict["n_layers"], stacked = args_dict["stacked"],
                                             drop_p=args_dict["dropout_p"], init_tmp=args_dict["init_temperature"],
                                             target_entropy=target_entropy, discrete=args_dict["env_discrete"],
-                                            batch_size=args_dict["batch_size"], device=device, conv=args_dict["conv"],
+                                            batch_size=args_dict["batch_size"], device=device, max_timestep=max_ep_len, conv=args_dict["conv"],
                                             std_cond_on_input=args_dict["std_cond_on_input"], block_type=args_dict["block_type"])
                     model = model.to(device)
                     if gpu:

@@ -15,7 +15,7 @@ import wandb
 from eval import Reinformer_eval
 from deep_learning_rl_sm.utils import *
 from deep_learning_rl_sm.trainer.trainer import Trainer
-from deep_learning_rl_sm.neuralnets.minRNN_Reinformer import minRNN_Reinformer
+from deep_learning_rl_sm.neuralnets.minGRU_Reinformer import minGRU_Reinformer
 from deep_learning_rl_sm.neuralnets.lamb import Lamb
 from deep_learning_rl_sm.environments import connect_four
 from torch.utils.data import Dataset, DataLoader
@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument("--model_type", choices=["reinformer"], default="reinformer")
     parser.add_argument("--env", choices=["halfcheetah", "walker2d", "hopper"], default="hopper")
     parser.add_argument("--env_discrete", type=bool, default=False)
-    parser.add_argument("--dataset", choices=["medium", "medium_expert", "medium_replay"], type=str, default="medium")
+    parser.add_argument("--dataset", choices=["medium", "medium_expert", "medium_replay"], type=str, default="medium_expert")
     parser.add_argument("--num_eval_ep", type=int, default=10)
     parser.add_argument("--max_eval_ep_len", type=int, default=1000)
     parser.add_argument("--dataset_dir", type=str,
@@ -82,13 +82,10 @@ def parse_args():
     parser.add_argument("--conv", type=bool, default=False)
     parser.add_argument("--block_type", type=str, default="mingru")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
-    parser.add_argument("--stacked", type=bool, default=True)
+    parser.add_argument("--stacked", type=bool, default=False)
     parser.add_argument("--expansion_factor", type=float, default=2.0)
     parser.add_argument("--mult", type=float, default=4.0)
     parser.add_argument("--acc_grad", type=int, default=1)
-    parser.add_argument("--graph_name", type=str, default="")
-    parser.add_argument("--reuse_emb", type=bool, default=False)
-    
 
     # use_wandb = False
     parser.add_argument("--use_wandb", action='store_true', default=True)
@@ -98,9 +95,6 @@ def parse_args():
 if __name__=="__main__":
     for seed in [0,42,2024]:
         args = parse_args()
-        args.seed = seed
-        print(args.reuse_emb)
-        print(vars(args)["reuse_emb"])
         settings = f"{args.K}-{args.batch_size}-{args.lr}"
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         gpu = str(device) == "cuda"
@@ -165,11 +159,11 @@ if __name__=="__main__":
         args["lr"] = lr
         args["seed"] = seed"""
         target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
-        model = minRNN_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
+        model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
                                 h_dim=args["embed_dim"], n_layers=args["n_layers"], stacked = args["stacked"],
-                                drop_p=args["dropout_p"], init_tmp=args["init_temperature"],reuse_emb=args["reuse_emb"],
+                                drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
                                 target_entropy=target_entropy, discrete=args["env_discrete"],
-                                batch_size=args["batch_size"], device=device, conv=args["conv"],
+                                batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
                                 std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
         model = model.to(device)
         """if gpu:
@@ -213,7 +207,7 @@ if __name__=="__main__":
                 d4rl_norm_scores.append(evaluator(trainer.model))
                 print(60 * "=")
                 if args["use_wandb"]:
-                    wandb.log({f"Normalized_Score_{env}_{settings}{args['graph_name']}": d4rl_norm_scores[-1]})
+                    wandb.log({f"Normalized_Score_{env}_{settings}": d4rl_norm_scores[-1]})
                 print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
                 print(60 * "=")
                 trainer.model.train()

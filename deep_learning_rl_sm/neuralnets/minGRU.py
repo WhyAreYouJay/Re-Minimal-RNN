@@ -35,13 +35,13 @@ class minGRU(Module):
     def __init__(self, dim,batch_size, device, expansion_factor = 1., dropout = 0.):
         super().__init__()
         self.dim=dim
-        self.exp_dim = int(dim * expansion_factor) if expansion_factor != 0.0 else dim
+        self.exp_dim = int(dim * expansion_factor)
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.drop_f = nn.Dropout(dropout)
-        self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device) if expansion_factor != 0.0 else nn.Identity()
-        self.drop_proj = nn.Dropout(dropout) if expansion_factor != 0.0 else nn.Identity()
+        self.down_projection = Linear(self.exp_dim, dim, bias=False, device = device) if expansion_factor != 1.0 else None
+        self.drop_proj = nn.Dropout(dropout)
         # output of f_z can be viewed as the proportion of the info from the current timestep that is incorporated into
         # the next hidden state (for more info see paper "Were RNNs All We Needed?")
 
@@ -77,8 +77,11 @@ class minGRU(Module):
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)
-        h =  parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1))
-        return self.drop_proj(self.down_projection(h))
+        if self.down_projection is not None:
+            h =  self.down_projection(parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1)))
+        else:
+            h =  parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1))
+        return self.drop_proj(h)
         
     
 class CausalDepthWiseConv1d(Module):
@@ -117,11 +120,11 @@ class minGRUCell(Module):
     def forward(self,x):
         residual = x
         if self.conv is not None:
-            x = self.ln1(self.conv(x) + residual)
+            x = self.conv(self.ln1(x)) + residual
             residual = x
-        x = self.ln2(self.cell(x) + residual)
+        x = self.cell(self.ln2(x)) + residual
         residual = x
-        return self.ln3(self.mlp(x) + residual)
+        return self.mlp(self.ln3(x)) + residual
 
 
 
@@ -150,10 +153,10 @@ class minGRUBlock(Module):
     def forward(self,x):
         residual = x
         if self.conv is not None:
-            x = self.ln1(self.conv(x) + residual)
+            x = self.conv(self.ln1(self.dim)(x)) + residual
             residual = x
         for i, cell in enumerate(self.cells):
-            x = self.lns[i](cell(x) + residual)
-            residual = x
-        return self.ln3(self.mlp(x) + residual)
+            x = cell(self.lns[i](x)) + residual
+        residual = x
+        return self.mlp(self.ln3(x))
 
