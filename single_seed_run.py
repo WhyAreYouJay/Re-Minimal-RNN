@@ -217,4 +217,3 @@ if __name__=="__main__":
               else:
                   for cell in b.cells:
                       cell.train_mode()
-    wandb.finish()
