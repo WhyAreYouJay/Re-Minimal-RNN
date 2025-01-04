@@ -4,7 +4,9 @@ This repository combines the paralellizable and sleeker minimal RNN from [Were R
 
 #### Running locally
 The needed libraries can be installed with **pip install -r requirements.txt**
+
 You can change the settings with command line arguments, look into available arguments in the file **single_full_seed_run.py**.
+
 Consult below for the settings to reproduce our scores for the D4RL Hopper,Walker2D and HalfCheetah environment benchmarks.
 
 #### Running on Colab/AWS and other services
