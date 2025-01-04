@@ -18,5 +18,7 @@ Consult below for the settings to reproduce our scores for the D4RL Hopper,Walke
 ## Settings
 ###### Attach these command line arguments to run **single_full_seed_run.py** this will run all 3 seeds in succesion
 ###### **single_seed_run.py** allows to run a singular seed. We have run with the seeds (0,42,2024)
-###### Minimal LSTM can be run with the last argument (minimal GRU is default)
-HalfCheetah-Medium :  --batch_size 128 --embed_dim 128 --max_iters 8 --lr 0.0001 --n_layers 3 --K 5 --tau 0.9 --wd 0.0001 --stacked True --expansion_factor 2.0 (--block_type "minlstm")
+###### Minimal LSTM can be run with the last argument (--block_type "minlstm"). Minimal GRU is the default
+HalfCheetah-Medium :  --env halfcheetah --dataset medium --embed_dim 128 --batch_size 128 --K 5 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.9 --warmup_steps 10000 --stacked True --expansion_factor 2.0 
+Walker2D-Medium : --env walker2d --dataset medium --embed_dim 128 --batch_size 256 --K 5 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.9 --warmup_steps 10000 --stacked True --expansion_factor 2.0
+Walker2D-Medium-Expert : --env walker2d --dataset medium_expert --embed_dim 128 --batch_size 256 --K 20 --lr 0.00015 --n_layers 3 --wd 0.0001 --tau 0.99 --warmup_steps 10000 --stacked True --expansion_factor 2.0 
