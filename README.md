@@ -21,6 +21,10 @@ Consult below for the settings to reproduce our scores for the D4RL Hopper,Walke
 ###### Minimal LSTM can be run with the last argument (--block_type "minlstm"). Minimal GRU is the default
 **HalfCheetah-Medium** :  --env halfcheetah --dataset medium --embed_dim 128 --batch_size 128 --K 5 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.9 --warmup_steps 10000 --stacked True --expansion_factor 2.0
 
+**HalfCheetah-Medium-Expert** : --env halfcheetah --dataset medium_expert --embed_dim 128 --batch_size 128 --K 20 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.9 --warmup_steps 10000 --stacked True --expansion_factor 2.0
+
 **Walker2D-Medium** : --env walker2d --dataset medium --embed_dim 128 --batch_size 256 --K 5 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.9 --warmup_steps 10000 --stacked True --expansion_factor 2.0
 
 **Walker2D-Medium-Expert** : --env walker2d --dataset medium_expert --embed_dim 128 --batch_size 256 --K 20 --lr 0.00015 --n_layers 3 --wd 0.0001 --tau 0.99 --warmup_steps 10000 --stacked True --expansion_factor 2.0 
+
+**Hopper-Medium** : --env hopper --dataset medium --embed_dim 256 --batch_size 128 --K 5 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.999 --warmup_steps 10000 --stacked True --expansion_factor 1.0
