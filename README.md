@@ -28,3 +28,5 @@ Consult below for the settings to reproduce our scores for the D4RL Hopper,Walke
 **Walker2D-Medium-Expert** : --env walker2d --dataset medium_expert --embed_dim 128 --batch_size 256 --K 20 --lr 0.00015 --n_layers 3 --wd 0.0001 --tau 0.99 --warmup_steps 10000 --stacked True --expansion_factor 2.0 
 
 **Hopper-Medium** : --env hopper --dataset medium --embed_dim 256 --batch_size 128 --K 5 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.999 --warmup_steps 10000 --stacked True --expansion_factor 1.0
+
+**Hopper-Medium-Expert** : --env hopper --dataset medium_expert --embed_dim 128 --batch_size 128 --K 20 --lr 0.001 --n_layers 3 --wd 0.0001 --tau 0.9 --warmup_steps 10000 --stacked True --expansion_factor 1.5
