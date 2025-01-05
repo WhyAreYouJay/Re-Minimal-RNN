@@ -1,6 +1,6 @@
 # Re-minimal RNN: Max-return SM with minimal RNNs
 
-This repository combines the paralellizable and sleeker minimal RNN from [Were RNNs all we needed](https://arxiv.org/abs/2410.01201), with the maximum return prediction model of the [Reinformer](https://arxiv.org/abs/2405.08740).
+This repository combines the parallelizable and sleeker minimal RNN from [Were RNNs all we needed](https://arxiv.org/abs/2410.01201), with the maximum return prediction model of the [Reinformer](https://arxiv.org/abs/2405.08740).
 
 #### Running locally
 The needed libraries can be installed with **pip install -r requirements.txt**
