@@ -55,7 +55,7 @@ class minLSTM(nn.Module):
     def reset_h_prev(self):
         self.h_prev = torch.zeros((1,1,self.exp_dim), device=self.device)
     
-    def forward(self, x_t : torch.Tensor, h_0 : torch.Tensor):
+    def forward(self, x_t : torch.Tensor, log_h_0 : torch.Tensor):
         """
         pre_h: (batch_size, units) - previous hidden state (h_prev)
         x_t: (batch_size, input_size) - input at time step t
@@ -70,12 +70,12 @@ class minLSTM(nn.Module):
         # Hidden state: log_tilde_h_t = log(W_h * x_t)
         log_tilde_h = log_g(k_h)  # (batch_size, units)
         # Use parallel_scan_log to compute the hidden state
-        h_t = parallel_scan_log(log_f, torch.cat([h_0, log_i + log_tilde_h], dim=1))
+        h_t = parallel_scan_log(log_f, torch.cat([log_h_0, log_i + log_tilde_h], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
         else:
             h = h_t
-        return self.drop_proj(h), h_t[:,2:-1:3]
+        return self.drop_proj(h), h_t[:,2:-1:3].log()
     
     def seq_forward(self, x_t : torch.Tensor):
         # x: (1,1, hidden_size)

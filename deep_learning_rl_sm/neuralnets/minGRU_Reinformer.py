@@ -101,7 +101,7 @@ class minGRU_Reinformer(nn.Module):
         # print("h shape: ", h.shape)
         # transformer and prediction
         h_0s_pred = self.embed_h_0s(embd_s)
-        h_0s = F.relu(h_0s_pred[:,:1].detach()).chunk(len(self.blocks),dim = -1)
+        h_0s = h_0s_pred[:,:1].detach().chunk(len(self.blocks),dim = -1)
         for block in self.blocks:
             h, h_0s = block(h,list(h_0s))
         # get h reshaped such that its size = (B x 3 x T x h_dim) and
