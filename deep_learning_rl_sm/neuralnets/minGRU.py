@@ -52,7 +52,7 @@ class minGRU(Module):
         # multiplying the original values but with better numerical stability
     
     def reset_h_prev(self):
-        self.h_prev = g(torch.zeros((1,1,self.exp_dim), device=self.device))
+        self.h_prev = torch.zeros((1,1,self.exp_dim), device=self.device)
     
     
     def forward(self, x:torch.Tensor, h_0:torch.Tensor):
