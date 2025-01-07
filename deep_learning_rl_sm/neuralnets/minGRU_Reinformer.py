@@ -99,10 +99,10 @@ class minGRU_Reinformer(nn.Module):
 
         h = self.embed_ln(h)
         # print("h shape: ", h.shape)
-        h_pred = self.embed_h(embd_s.detach())
+        h_pred = self.embed_h(embd_s)
         #make sure for t = 0, h_0 is all zeros
-        h_pred[timesteps == 0] = torch.zeros_like(h_pred[0,0])
-        h_0 = h_pred[:,:1].detach().chunk(len(self.blocks),dim = -1)
+        h_pred[timesteps == 0] = torch.ones_like(h_pred[0,0])*0.5
+        h_0 = h_pred[:,:1].chunk(len(self.blocks),dim = -1)
         for block in self.blocks:
             h, h_0 = block(h,list(h_0))
         h_target = h_0
@@ -122,7 +122,7 @@ class minGRU_Reinformer(nn.Module):
         #return h_0 prediction loss
         h_pred = h_pred[:,1:]
         h_target = torch.cat(h_target, dim=-1)
-        h_loss = ((h_target.detach() - g(h_pred))**2)
+        h_loss = 0 #((h_target.detach() - h_pred)**2)
         return rtg_preds, action_dist_preds ,h_loss
     
     def get_rtg(self, timestep, state):

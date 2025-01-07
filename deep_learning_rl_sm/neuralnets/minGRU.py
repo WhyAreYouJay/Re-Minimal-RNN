@@ -62,7 +62,7 @@ class minGRU(Module):
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)
-        h_t = parallel_scan_log(log_coeffs, torch.cat([log_g(h_0),log_tilde_h + log_z], dim=1))
+        h_t = parallel_scan_log(log_coeffs, torch.cat([h_0.log(),log_tilde_h + log_z], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
         return self.drop_proj(h), h_t[:,2:-1:3]
