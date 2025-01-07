@@ -28,6 +28,7 @@ def benchmark_data(filepath):
     terminals = file['terminals'][()]
     timeouts = file['timeouts'][()]
     dones = terminals | timeouts
+    dones[-1] = True
     trajs = [-1]+[i for i,x in enumerate(dones) if x] #gets trajectory indices
     obs,act,r,rtg,d,l,ret_sum = [],[],[],[],[],[],[]
     for i in range(len(trajs)-1):
@@ -36,8 +37,7 @@ def benchmark_data(filepath):
         l.append(ind_end - ind_st)
         traj_rews = rewards[ind_st:ind_end]
         final_rew = sum(traj_rews)
-        cumsum_rewards = np.cumsum(traj_rews)
-        rew_to_go = final_rew - cumsum_rewards
+        rew_to_go = np.cumsum(traj_rews[::-1])[::-1]
         ob = observations[ind_st:ind_end]
         ac = actions[ind_st:ind_end]
         done = dones[ind_st:ind_end]

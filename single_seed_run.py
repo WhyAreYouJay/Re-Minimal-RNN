@@ -12,7 +12,7 @@ import gymnasium as gym
 import numpy as np
 import torch
 import wandb
-from eval import Reinformer_eval
+from eval import evaluate
 from deep_learning_rl_sm.utils import *
 from deep_learning_rl_sm.trainer.trainer import Trainer
 from deep_learning_rl_sm.neuralnets.minGRU_Reinformer import minGRU_Reinformer
@@ -75,12 +75,12 @@ def parse_args():
     parser.add_argument("--wd", type=float, default=1e-4)
     parser.add_argument("--warmup_steps", type=int, default=10000)
     parser.add_argument("--max_iters", type=int, default=20)
-    parser.add_argument("--num_steps_per_iter", type=int, default=5000)
+    parser.add_argument("--num_steps_per_iter", type=int, default=5)
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--init_temperature", type=float, default=0.1)
     parser.add_argument("--eps", type=float, default=1e-8)
     parser.add_argument("--conv", type=bool, default=False)
-    parser.add_argument("--block_type", type=str, default="mingru")
+    parser.add_argument("--block_type", type=str, default="minlstm")
     parser.add_argument("--std_cond_on_input", type=bool, default=False)
     parser.add_argument("--stacked", type=bool, default=False)
     parser.add_argument("--expansion_factor", type=float, default=2.0)
@@ -93,127 +93,107 @@ def parse_args():
 
 
 if __name__=="__main__":
-  args = parse_args()
-  seed = args.seed
-  settings = f"{args.K}-{args.batch_size}-{args.lr}"
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  gpu = str(device) == "cuda"
-  torch.backends.cuda.matmul.allow_tf32 = True if gpu else False
-  if gpu:
-      torch.set_float32_matmul_precision("highest")
-  #seed = args.seed
-  random.seed(seed)
-  np.random.seed(seed)
-  torch.manual_seed(seed)
-  rng = np.random.default_rng(seed)
-  if args.use_wandb:
-      wandb.login()
-      wandb.init(
-          name=args.env + "-" + args.dataset+"-"+settings,
-          project="Reinformer",
-          config=vars(args)
-      )
-  env = args.env + "_" + args.dataset + "-v2"
-  fp = download_dataset_from_url(env)
-  max_ep_len = 1000  # Same for all 3 envs (Hopper, Walker, HalfCheetah)
-  scale = 1000  # Normalization for rewards/returns
-  if args.env in ["walker2d"]:
-      env_name = "Walker2d"
-  if args.env in ["hopper"]:
-      env_name = "Hopper"
-  if args.env in ["halfcheetah"]:
-      scale = 5000
-      env_name = "HalfCheetah"
-  observations, acts, rew_to_gos, state_mean, state_std = benchmark_data(fp)
-  environment = gym.make(env_name + "-v4")
+    args = parse_args()
+    seed = args.seed
+    settings = f"{args.K}-{args.batch_size}-{args.lr}-{args.expansion_factor}-{args.mult}-{args.embed_dim}-{args.n_layers}"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    gpu = str(device) == "cuda"
+    torch.backends.cuda.matmul.allow_tf32 = True if gpu else False
+    if gpu:
+        torch.set_float32_matmul_precision("highest")
+    #seed = args.seed
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    rng = np.random.default_rng(seed)
+    if args.use_wandb:
+        wandb.login()
+        wandb.init(
+            name=args.env + "-" + args.dataset+"-"+settings,
+            project="Reinformer",
+            config=vars(args)
+        )
+    env = args.env + "_" + args.dataset + "-v2"
+    fp = download_dataset_from_url(env)
+    max_ep_len = 1000  # Same for all 3 envs (Hopper, Walker, HalfCheetah)
+    scale = 1000  # Normalization for rewards/returns
+    if args.env in ["walker2d"]:
+        env_name = "Walker2d"
+    if args.env in ["hopper"]:
+        env_name = "Hopper"
+    if args.env in ["halfcheetah"]:
+        scale = 5000
+        env_name = "HalfCheetah"
+    observations, acts, rew_to_gos, state_mean, state_std = benchmark_data(fp)
+    environment = gym.make(env_name + "-v4")
 
 
-  def get_normalized_score(score, env=env):
-      return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE[env])
+    def get_normalized_score(score, env=env):
+        return (score - REF_MIN_SCORE[env]) / (REF_MAX_SCORE[env] - REF_MIN_SCORE[env])
 
 
-  def evaluator(model):
-      return_mean, _, _, _ = Reinformer_eval(
-          seed=seed,
-          model=model,
-          device=device,
-          context_len=args["K"],
-          env=environment,
-          state_mean=state_mean,
-          state_std=state_std,
-          num_eval_ep=args["num_eval_ep"],
-          max_test_ep_len=args["max_eval_ep_len"]
-      )
-      return get_normalized_score(
-          return_mean
-      ) * 100
+    def evaluator(model):
+        return_mean, _, _, _ = evaluate(
+            seed=seed,
+            model=model,
+            device=device,
+            context_len=args["K"],
+            env=environment,
+            state_mean=state_mean,
+            state_std=state_std,
+            num_eval_ep=args["num_eval_ep"],
+            max_test_ep_len=args["max_eval_ep_len"]
+        )
+        return get_normalized_score(
+            return_mean
+        ) * 100
 
 
-  state_dim, act_dim = observations[0].shape[1], acts[0].shape[1]
-  # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
-  args = vars(args)
-  """args["tau"] = taus[args["env"]][args["dataset"]]
-  args["K"] = K
-  args["batch_size"] = batch_size
-  args["embed_dim"] = embed_dim
-  args["lr"] = lr
-  args["seed"] = seed"""
-  target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
-  model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
-                          h_dim=args["embed_dim"], n_layers=args["n_layers"], stacked = args["stacked"],
-                          drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
-                          target_entropy=target_entropy, discrete=args["env_discrete"],
-                          batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
-                          std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
-  model = model.to(device)
-  """if gpu:
-      torch.compile(model=model, mode="max-autotune")"""
-  optimizer = Lamb(
-      model.parameters(),
-      lr=args["lr"],
-      weight_decay=args["wd"],
-      eps=args["eps"],
-  )
-  scheduler = torch.optim.lr_scheduler.LambdaLR(
-      optimizer,
-      lambda steps: min((steps + 1) / args["warmup_steps"], 1)
-  )
-  # perhaps dynamically incease K
-  dataset = D4RLDataset(observations, acts, rew_to_gos, args["K"], scale)
-  traj_data_loader = DataLoader(
-      dataset,
-      batch_size=args["batch_size"],
-      shuffle=True,
-      pin_memory=True,
-      drop_last=True,
-      generator=torch.Generator().manual_seed(seed)
-  )
-  trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
-                  parsed_args=args, batch_size=args["batch_size"], device=device, acc_grad=args["acc_grad"])
-  if gpu:
-      torch.backends.cudnn.benchmark = True
-  d4rl_norm_scores = []
-  for it in range(args["max_iters"]):
-      outputs = trainer.train_iteration_benchmark(num_steps=args['num_steps_per_iter'], iter_num=it + 1,
-                                                  print_logs=True)
-      # Eval
-      with torch.no_grad():
-          for b in trainer.model.blocks:
-              if not args["stacked"]:
-                  b.cell.eval_mode()
-              else:
-                  for cell in b.cells:
-                      cell.eval_mode()
-          d4rl_norm_scores.append(evaluator(trainer.model))
-          print(60 * "=")
-          if args["use_wandb"]:
-              wandb.log({f"Normalized_Score_{env}_{settings}": d4rl_norm_scores[-1]})
-          print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
-          print(60 * "=")
-          trainer.model.train()
-          for b in trainer.model.blocks:
-              if not args["stacked"]:
-                  b.cell.train_mode()
-              else:
-                  for cell in b.cells:
-                      cell.train_mode()
+    state_dim, act_dim = observations[0].shape[1], acts[0].shape[1]
+    # entropy to encourage exploration in RL typically -action_dim for continuous actions and -log(action_dim) when discrete
+    args = vars(args)
+    target_entropy = -np.log(np.prod(act_dim)) if args["env_discrete"] else -np.prod(act_dim)
+    model = minGRU_Reinformer(state_dim=state_dim, act_dim=act_dim, expansion_factor = args["expansion_factor"], mult = args["mult"],
+                            h_dim=args["embed_dim"], n_layers=args["n_layers"], stacked = args["stacked"],
+                            drop_p=args["dropout_p"], init_tmp=args["init_temperature"],
+                            target_entropy=target_entropy, discrete=args["env_discrete"],
+                            batch_size=args["batch_size"], device=device, max_timestep=max_ep_len, conv=args["conv"],
+                            std_cond_on_input=args["std_cond_on_input"], block_type=args["block_type"])
+    model = model.to(device)
+    optimizer = Lamb(
+        model.parameters(),
+        lr=args["lr"],
+        weight_decay=args["wd"],
+        eps=args["eps"],
+    )
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lambda steps: min((steps + 1) / args["warmup_steps"], 1)
+    )
+    # perhaps dynamically incease K
+    dataset = D4RLDataset(observations, acts, rew_to_gos, args["K"], scale)
+    traj_data_loader = DataLoader(
+        dataset,
+        batch_size=args["batch_size"],
+        shuffle=True,
+        pin_memory=True,
+        drop_last=True,
+        generator=torch.Generator().manual_seed(seed)
+    )
+    trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
+                    parsed_args=args, batch_size=args["batch_size"], device=device, acc_grad=args["acc_grad"])
+    if gpu:
+        torch.backends.cudnn.benchmark = True
+    d4rl_norm_scores = []
+    for it in range(args["max_iters"]):
+        outputs = trainer.train_iteration_benchmark(num_steps=args['num_steps_per_iter'], iter_num=it + 1,
+                                                    print_logs=True)
+        # Eval
+        d4rl_norm_scores.append(evaluator(trainer.model))
+        print(60 * "=")
+        if args["use_wandb"]:
+            wandb.log({f"Normalized_Score_{env}_{settings}": d4rl_norm_scores[-1]})
+        print(f"Normalized Score for {env} : {d4rl_norm_scores[-1]}")
+        print(60 * "=")
+        trainer.model.train()
+    wandb.finish()
