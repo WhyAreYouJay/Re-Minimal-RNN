@@ -31,3 +31,7 @@ Consult below for the settings to reproduce our scores for the D4RL Hopper,Walke
 **Hopper-Medium** : --env hopper --dataset medium --embed_dim 256 --batch_size 128 --K 5 --lr 0.0001 --n_layers 3 --wd 0.0001 --tau 0.999 --warmup_steps 10000 --stacked True --expansion_factor 1.0
 
 **Hopper-Medium-Expert** : --env hopper --dataset medium_expert --embed_dim 128 --batch_size 128 --K 20 --lr 0.001 --n_layers 3 --wd 0.0001 --tau 0.9 --warmup_steps 10000 --stacked True --expansion_factor 1.5
+
+# Double DQN expert for Connect-four
+#### Running locally
+To run locally simply run the train.py file located in experts/DQN. By default the trained agent will be evaluated against a random action policy every 500 episodes where the agent will play 1000 games and return a win rate, draw rate and loss rate.
