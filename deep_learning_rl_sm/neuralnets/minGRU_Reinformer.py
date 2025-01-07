@@ -102,10 +102,9 @@ class minGRU_Reinformer(nn.Module):
         h_pred = self.embed_h(embd_s[:,:1])
         #make sure for t = 0, h_0 is all zeros
         h_pred[timesteps[:,:1] == 0] = torch.ones_like(h_pred[0,0])*0.5
-        h_0 = h_pred.chunk(len(self.blocks),dim = -1)
+        h_0 = h_pred.exp().chunk(len(self.blocks),dim = -1)
         for block in self.blocks:
             h, h_0 = block(h,list(h_0))
-        h_target = h_0
         # get h reshaped such that its size = (B x 3 x T x h_dim) and
         # h[:, 0, t] is conditioned on the input sequence s_0, R_0, a_0 ... s_t
         # h[:, 1, t] is conditioned on the input sequence s_0, R_0, a_0 ... s_t, R_t
