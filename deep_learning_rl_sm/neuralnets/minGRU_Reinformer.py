@@ -101,7 +101,7 @@ class minGRU_Reinformer(nn.Module):
         # print("h shape: ", h.shape)
         h_pred = self.embed_h(embd_s[:,:1])
         #make sure for t = 0, h_0 is all zeros
-        h_pred[timesteps == 0] = torch.ones_like(h_pred[0,0])*0.5
+        h_pred[timesteps[:,:1] == 0] = torch.ones_like(h_pred[0,0])*0.5
         h_0 = h_pred.chunk(len(self.blocks),dim = -1)
         for block in self.blocks:
             h, h_0 = block(h,list(h_0))
