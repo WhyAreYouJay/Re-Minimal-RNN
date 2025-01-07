@@ -38,22 +38,15 @@ class D4RLDataset(Dataset):
     def __getitem__(self, idx):
         if self.s[idx].shape[0] > self.seq_len:
             si = self.rng(0, self.s[idx].shape[0] - self.seq_len)
-            s, a, rtg = torch.from_numpy(self.s[idx][si:si + self.seq_len]), torch.from_numpy(self.a[idx][si:si + self.seq_len]), torch.from_numpy(self.rtg[idx][si:si + self.seq_len])
-            if si == 0: 
-                s, a, rtg = torch.from_numpy(self.s[idx][si:si + self.seq_len]), torch.from_numpy(self.a[idx][si:si + self.seq_len]), torch.from_numpy(self.rtg[idx][si:si + self.seq_len])
-                s,a,rtg = torch.cat([torch.zeros([1]+self.s_shape[1:]),s]),torch.cat([torch.zeros([1]+self.a_shape[1:]),a]),torch.cat([torch.zeros([1]+self.rtg_shape[1:]),rtg])
-                t = torch.arange(-1, self.seq_len,1)
-            else:
-                s, a, rtg = torch.from_numpy(self.s[idx][si-1:si + self.seq_len]), torch.from_numpy(self.a[idx][si-1:si + self.seq_len]), torch.from_numpy(self.rtg[idx][si-1:si + self.seq_len])
-                t = torch.arange(si -1, si + self.seq_len,1)
+            s, a, rtg = self.s[idx][si:si + self.seq_len], self.a[idx][si:si + self.seq_len], self.rtg[idx][si:si + self.seq_len]
+            t = torch.arange(si, si+self.seq_len,1)
             mask = torch.ones(self.seq_len)
         else:
             pad_len = self.seq_len - self.s[idx].shape[0]
+            t = torch.arange(start=0, end=self.seq_len, step=1)
             s = torch.cat([torch.from_numpy(self.s[idx]), torch.zeros([pad_len] + self.s_shape[1:])], dim=0)
             a = torch.cat([torch.from_numpy(self.a[idx]), torch.zeros([pad_len] + self.a_shape[1:])], dim=0)
             rtg = torch.cat([torch.from_numpy(self.rtg[idx]), torch.zeros([pad_len] + self.rtg_shape[1:])], dim=0)
-            s,a,rtg = torch.cat([torch.zeros([1]+self.s_shape[1:]),s]),torch.cat([torch.zeros([1]+self.a_shape[1:]),a]),torch.cat([torch.zeros([1]+self.rtg_shape[1:]),rtg])
-            t = torch.arange(-1, self.seq_len,1)
             mask = torch.cat([torch.ones(self.seq_len - pad_len), torch.zeros(pad_len)], dim=0)
         return (t, s, a, rtg, mask)
     

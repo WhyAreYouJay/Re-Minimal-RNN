@@ -52,7 +52,7 @@ class minGRU(Module):
         # multiplying the original values but with better numerical stability
     
     def reset_h_prev(self):
-        self.h_prev = g(torch.zeros((1,1,self.exp_dim),device=self.device))
+        self.h_prev = torch.zeros((1,1,self.exp_dim),device=self.device)
     
     
     def forward(self, x:torch.Tensor, h_0:torch.Tensor):
@@ -65,7 +65,7 @@ class minGRU(Module):
         h_t = parallel_scan_log(log_coeffs, torch.cat([log_g(h_0),log_tilde_h + log_z], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
-        return self.drop_proj(h), h_t[:,2::3]
+        return self.drop_proj(h), h_t[:,2:-1:3]
     
     def seq_forward(self, x:torch.Tensor):
         # x: (1,1, hidden_size)
