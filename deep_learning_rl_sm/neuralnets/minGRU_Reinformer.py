@@ -99,7 +99,7 @@ class minGRU_Reinformer(nn.Module):
 
         h = self.embed_ln(h)
         # print("h shape: ", h.shape)
-        h_pred = self.embed_h(embd_s[:,:1])
+        h_pred = self.embed_h(embd_s[:,:1].detach())
         #make sure for t = 0, h_0 is all zeros
         h_0 = h_pred.chunk(len(self.blocks),dim = -1)
         for block in self.blocks:
