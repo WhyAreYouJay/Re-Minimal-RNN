@@ -45,17 +45,17 @@ class minLSTM(nn.Module):
         #self.linear = nn.Linear(self.dim, 3*self.exp_dim, device = device)
         self.drop_f = nn.Dropout(dropout)
         self.linear_f = nn.Linear(self.dim, self.exp_dim, device = device)
-        with torch.no_grad():
-            self.linear_f.bias.copy_(self.linear_f.bias.data + 3.0)
+        """with torch.no_grad():
+            self.linear_f.bias.copy_(self.linear_f.bias.data + 3.0)"""
         self.linear_i = nn.Linear(self.dim, self.exp_dim, device = device)
         self.linear_h = nn.Linear(self.dim, self.exp_dim, device = device)
         self.down_projection = Linear(self.exp_dim,dim, bias=False, device = device) if expansion_factor != 1.0 else None
         self.drop_proj = nn.Dropout(dropout)
     
     def reset_h_prev(self):
-        self.h_prev = torch.zeros((1,1,self.exp_dim), device=self.device)
+        self.h_prev = g(torch.zeros((1,1,self.exp_dim), device=self.device))
     
-    def forward(self, x_t : torch.Tensor, log_h_0 : torch.Tensor):
+    def forward(self, x_t : torch.Tensor, h_0 : torch.Tensor):
         """
         pre_h: (batch_size, units) - previous hidden state (h_prev)
         x_t: (batch_size, input_size) - input at time step t
@@ -70,12 +70,12 @@ class minLSTM(nn.Module):
         # Hidden state: log_tilde_h_t = log(W_h * x_t)
         log_tilde_h = log_g(k_h)  # (batch_size, units)
         # Use parallel_scan_log to compute the hidden state
-        h_t = parallel_scan_log(log_f, torch.cat([log_h_0, log_i + log_tilde_h], dim=1))
+        h_t = parallel_scan_log(log_f, torch.cat([log_g(h_0), log_i + log_tilde_h], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
         else:
             h = h_t
-        return self.drop_proj(h), h_t[:,2:-1:3].log()
+        return self.drop_proj(h), h_t[:,2::3]
     
     def seq_forward(self, x_t : torch.Tensor):
         # x: (1,1, hidden_size)

@@ -434,6 +434,7 @@ class Trainer:
                 actions=actions,
                 returns_to_go=rtg
             )
+            timesteps, states, actions, rtg = timesteps[:,1:],states[:,1:],actions[:,1:],rtg[:,1:]
             returns_to_go_target = torch.clone(rtg).view(
                 -1, 1
             )[
