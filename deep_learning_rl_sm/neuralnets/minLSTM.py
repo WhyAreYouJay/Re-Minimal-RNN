@@ -53,7 +53,7 @@ class minLSTM(nn.Module):
         self.drop_proj = nn.Dropout(dropout)
     
     def reset_h_prev(self):
-        self.h_prev = g(torch.zeros((1,1,self.exp_dim), device=self.device))
+        self.h_prev = torch.ones((1,1,self.exp_dim), device=self.device) * 0.5
     
     def forward(self, x_t : torch.Tensor, h_0 : torch.Tensor):
         """
