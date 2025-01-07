@@ -70,7 +70,7 @@ class minLSTM(nn.Module):
         # Hidden state: log_tilde_h_t = log(W_h * x_t)
         log_tilde_h = log_g(k_h)  # (batch_size, units)
         # Use parallel_scan_log to compute the hidden state
-        h_t = parallel_scan_log(log_f, torch.cat([log_g(h_0), log_i + log_tilde_h], dim=1))
+        h_t = parallel_scan_log(log_f, torch.cat([h_0, log_i + log_tilde_h], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
         else:
