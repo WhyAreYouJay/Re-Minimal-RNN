@@ -18,7 +18,7 @@ from deep_learning_rl_sm.trainer.trainer import Trainer
 from deep_learning_rl_sm.neuralnets.minGRU_Reinformer import minGRU_Reinformer
 from deep_learning_rl_sm.neuralnets.lamb import Lamb
 from deep_learning_rl_sm.environments import connect_four
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 import random
 
 
@@ -178,7 +178,8 @@ if __name__=="__main__":
             shuffle=True,
             pin_memory=True,
             drop_last=True,
-            generator=torch.Generator().manual_seed(seed)
+            generator=torch.Generator().manual_seed(seed),
+            sampler=WeightedRandomSampler([len(ob) for ob in observations], len(observations))
         )
         trainer = Trainer(model=model, data_loader=traj_data_loader, optimizer=optimizer, scheduler=scheduler,
                         parsed_args=args, batch_size=args["batch_size"], device=device, acc_grad=args["acc_grad"])
