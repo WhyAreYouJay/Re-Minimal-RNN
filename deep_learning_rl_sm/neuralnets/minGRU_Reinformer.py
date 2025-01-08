@@ -44,7 +44,7 @@ class minGRU_Reinformer(nn.Module):
                     conv=conv, mult = mult) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
                     conv=conv, mult = mult)
             for _ in range(n_layers)]
-        self.h_0 = torch.nn.Parameter(g(torch.zeros((max_timestep,int(self.h_dim * expansion_factor)))))
+        
         self.min_rnn = nn.Sequential(*self.blocks)
         # projection heads (project to embedding) /same as paper
         self.embed_ln = nn.LayerNorm(self.h_dim, device=device)
@@ -99,12 +99,15 @@ class minGRU_Reinformer(nn.Module):
 
         h = self.embed_ln(h)
         # print("h shape: ", h.shape)
-        #h_pred = self.embed_h(embd_s[:,:1].detach())
+        h_pred = self.embed_h(embd_s)
         #make sure for t = 0, h_0 is all zeros
-        #h_0 = h_pred.chunk(len(self.blocks),dim = -1)
-        for i, block in enumerate(self.blocks):
-            h_0 = self.h_0[timesteps[:,:1].detach()]
-            h = block(h, h_0)
+        h_pred[timesteps == 0] = torch.ones_like(h_pred[0,0])*0.5
+        h_0 = h_pred[:,:1]
+        h_0[h_0 <= 0] = h_0[h_0 <= 0].sigmoid()
+        h_0 = h_0.chunk(len(self.blocks),dim = -1)
+        for block in self.blocks:
+            h, h_0 = block(h,list(h_0))
+        h_target = h_0
         # get h reshaped such that its size = (B x 3 x T x h_dim) and
         # h[:, 0, t] is conditioned on the input sequence s_0, R_0, a_0 ... s_t
         # h[:, 1, t] is conditioned on the input sequence s_0, R_0, a_0 ... s_t, R_t
@@ -119,7 +122,10 @@ class minGRU_Reinformer(nn.Module):
         action_dist_preds = self.predict_action(h[:, 1])  # predict action given s, R
         # state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
         #return h_0 prediction loss
-        return rtg_preds, action_dist_preds
+        h_pred = h_pred[:,1:]
+        h_target = torch.cat(h_target, dim=-1)
+        h_loss = 0 #((h_target.detach() - h_pred)**2)
+        return rtg_preds, action_dist_preds ,h_loss
     
     def get_rtg(self, timestep, state):
         h = self.embed_state(state) + self.embed_timestep(timestep)
