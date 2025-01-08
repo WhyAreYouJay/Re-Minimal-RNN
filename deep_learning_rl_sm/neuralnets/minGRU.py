@@ -25,7 +25,7 @@ class minGRU(Module):
         self.dim=dim
         self.device = device
         self.exp_dim = int(dim * expansion_factor)
-        self.log_h_0 = nn.Parameter(log_g(torch.zeros((batch_size,1,self.exp_dim), device=device)))
+        #self.log_h_0 = nn.Parameter(g(torch.zeros((batch_size,1,self.exp_dim), device=device)))
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.drop_f = nn.Dropout(dropout)
@@ -63,7 +63,7 @@ class minGRU(Module):
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)
-        h_t = parallel_scan_log(log_coeffs, torch.cat([self.log_h_0,log_tilde_h + log_z], dim=1))
+        h_t = parallel_scan_log(log_coeffs, torch.cat([h_0.log(),log_tilde_h + log_z], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
         return self.drop_proj(h)

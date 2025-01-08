@@ -40,7 +40,7 @@ class minLSTM(nn.Module):
         self.device = device
         self.dim=dim
         self.exp_dim = int(dim * expansion_factor)
-        self.log_h_0 = nn.Parameter(log_g(torch.zeros((batch_size,1,self.exp_dim), device=device)))
+        #self.log_h_0 = nn.Parameter(g(torch.zeros((batch_size,1,self.exp_dim), device=device)))
         self.batch_size = batch_size
         # Initialize the linear layers for the forget gate, input gate, and hidden state transformation
         #self.linear = nn.Linear(self.dim, 3*self.exp_dim, device = device)
@@ -71,7 +71,7 @@ class minLSTM(nn.Module):
         # Hidden state: log_tilde_h_t = log(W_h * x_t)
         log_tilde_h = log_g(k_h)  # (batch_size, units)
         # Use parallel_scan_log to compute the hidden state
-        h_t = parallel_scan_log(log_f, torch.cat([self.log_h_0, log_i + log_tilde_h], dim=1))
+        h_t = parallel_scan_log(log_f, torch.cat([h_0.log(), log_i + log_tilde_h], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
         else:
@@ -123,10 +123,10 @@ class minLSTMCell(Module):
             )
         self.ln3 = torch.nn.LayerNorm(dim, device = device)
     
-    def forward(self,x, h_0s= None):
+    def forward(self,x, h_0):
         if self.conv is not None:
             x = self.ln1(x + self.conv(x))
-        cell_out = self.cell(x)
+        cell_out = self.cell(x,h_0)
         x = self.ln2(x + cell_out)
         if self.mlp is not None:
             return self.ln3(x + self.mlp(x))
