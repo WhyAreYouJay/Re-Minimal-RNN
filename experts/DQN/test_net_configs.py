@@ -15,7 +15,7 @@ def run_game_vs_rand(environment, agent):
     w_ratio = 0
     d_ratio = 0
     l_ratio = 0
-    for _ in range(1000):
+    for _ in range(10000):
         done = False
         last_reward = None
         state, _ = environment.reset()
@@ -37,9 +37,9 @@ def run_game_vs_rand(environment, agent):
         elif last_reward == 0:
             d_ratio += 1
 
-    w_ratio /= 1000
-    d_ratio /= 1000
-    l_ratio /= 1000
+    w_ratio /= 10000
+    d_ratio /= 10000
+    l_ratio /= 10000
     return w_ratio, d_ratio, l_ratio
 
 
