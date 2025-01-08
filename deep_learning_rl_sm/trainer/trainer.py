@@ -426,7 +426,8 @@ class Trainer:
             # model forward ----------------------------------------------
             (
                 returns_to_go_preds,
-                actions_dist_preds
+                actions_dist_preds,
+                h_0_loss
             ) = self.model.forward(
                 timesteps=timesteps,
                 states=states,
@@ -460,8 +461,8 @@ class Trainer:
             entropy = actions_dist_preds.entropy().sum(axis=2).mean()
             action_loss = -(log_likelihood + self.model.temp().detach() * entropy)
             #h_0_loss = h_0_loss[:,1:].mean()
-            wandb.log({"rtg_loss": returns_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":-self.model.temp().detach() * entropy})
-            loss = (returns_to_go_loss + action_loss) / self.acc_grad
+            wandb.log({"rtg_loss": returns_to_go_loss, "act_log_likelihood":-log_likelihood,"temperature_loss":-self.model.temp().detach() * entropy, "hidden_state_loss" : h_0_loss})
+            loss = (returns_to_go_loss + action_loss + h_0_loss) / self.acc_grad
             
             # optimizer -----------------------------------------------
             loss.backward()

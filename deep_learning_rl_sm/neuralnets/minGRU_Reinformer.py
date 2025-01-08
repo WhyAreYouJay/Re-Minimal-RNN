@@ -52,8 +52,7 @@ class minGRU_Reinformer(nn.Module):
         self.embed_state = nn.Linear(np.prod(self.s_dim), self.h_dim, device=device)
         self.embed_rtg = nn.Linear(1, self.h_dim, device=device)
         self.embed_action = nn.Linear(self.a_dim, self.h_dim, device=device)
-        self.embed_h = nn.Linear(self.h_dim, int(self.h_dim * expansion_factor), device=device)
-        self.lt = nn.Parameter(torch.zeros((n_layers ,max_timestep, 1, int(self.h_dim * expansion_factor)), device = device))
+        self.embed_h = nn.Linear(self.h_dim, n_layers * int(self.h_dim * expansion_factor), device=device)
         # prediction heads /same as paper
         self.predict_rtg = nn.Linear(self.h_dim, 1, device=device)
         # stochastic action (output is distribution)
@@ -100,15 +99,15 @@ class minGRU_Reinformer(nn.Module):
 
         h = self.embed_ln(h)
         # print("h shape: ", h.shape)
-        """h_pred = self.embed_h(embd_s[:,:1])
+        h_pred = self.embed_h(embd_s)
         #make sure for t = 0, h_0 is all zeros
-        h_pred[timesteps[:,:1] == 0] = torch.ones_like(h_pred[0,0], device=h_pred.device)*0.5
-        h_0 = h_pred
-        h_0[h_0 <= 0] = h_0[h_0 <= 0].sigmoid()"""
-        h_par = g(self.lt[:,timesteps[:,1]])
-        h_par[:,timesteps[:,:1] == 0] = torch.ones_like(h_par[0,0], device=h_par.device)*0.5
-        for i, block in enumerate(self.blocks):
-            h = block(h,h_par[i])
+        h_pred[timesteps == 0] = torch.ones_like(h_pred[0,0])*0.5
+        h_0 = h_pred[:,:1]
+        h_0[h_0 <= 0] = h_0[h_0 <= 0].sigmoid()
+        h_0 = h_0.chunk(len(self.blocks),dim = -1)
+        for block in self.blocks:
+            h, h_0 = block(h,list(h_0))
+        h_target = h_0
         # get h reshaped such that its size = (B x 3 x T x h_dim) and
         # h[:, 0, t] is conditioned on the input sequence s_0, R_0, a_0 ... s_t
         # h[:, 1, t] is conditioned on the input sequence s_0, R_0, a_0 ... s_t, R_t
@@ -123,7 +122,10 @@ class minGRU_Reinformer(nn.Module):
         action_dist_preds = self.predict_action(h[:, 1])  # predict action given s, R
         # state_preds = self.predict_state(h[:, 2])  # predict next state given s, R, a
         #return h_0 prediction loss
-        return rtg_preds, action_dist_preds
+        h_pred = h_pred[:,1:]
+        h_target = torch.cat(h_target, dim=-1)
+        h_loss = 0 #((h_target.detach() - h_pred)**2)
+        return rtg_preds, action_dist_preds ,h_loss
     
     def get_rtg(self, timestep, state):
         h = self.embed_state(state) + self.embed_timestep(timestep)

@@ -65,7 +65,7 @@ class minGRU(Module):
         h_t = parallel_scan_log(log_coeffs, torch.cat([h_0.log(),log_tilde_h + log_z], dim=1))
         if self.down_projection is not None:
             h =  self.down_projection(h_t)
-        return self.drop_proj(h)
+        return self.drop_proj(h), h_t[:,2:-1:3]
     
     def seq_forward(self, x:torch.Tensor):
         # x: (1,1, hidden_size)
@@ -110,13 +110,13 @@ class minGRUCell(Module):
             ) if mult != 0 else None
         self.ln3 = torch.nn.LayerNorm(dim, device = device)
     
-    def forward(self,x, h_0):
+    def forward(self,x, h_0s):
         if self.conv is not None:
             x = self.ln1(x + self.conv(x))
-        cell_out= self.cell(x, h_0)
+        cell_out, h_0 = self.cell(x, h_0s[0])
         x = self.ln2(x + cell_out)
         if self.mlp is not None:
-            return self.ln3(x + self.mlp(x))
+            return self.ln3(x + self.mlp(x)), h_0s[1:] + [h_0]
         
     def seq_forward(self,x):
         if self.conv is not None:
