@@ -110,10 +110,10 @@ class minGRUCell(Module):
             ) if mult != 0 else None
         self.ln3 = torch.nn.LayerNorm(dim, device = device)
     
-    def forward(self,x, h_0s):
+    def forward(self,x, h_0):
         if self.conv is not None:
             x = self.ln1(x + self.conv(x))
-        cell_out= self.cell(x, h_0s[0])
+        cell_out= self.cell(x, h_0)
         x = self.ln2(x + cell_out)
         if self.mlp is not None:
             return self.ln3(x + self.mlp(x))
