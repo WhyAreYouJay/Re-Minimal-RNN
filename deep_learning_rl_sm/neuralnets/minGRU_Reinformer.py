@@ -99,14 +99,12 @@ class minGRU_Reinformer(nn.Module):
 
         h = self.embed_ln(h)
         # print("h shape: ", h.shape)
-        h_pred = self.embed_h(embd_s)
+        h_pred = self.embed_h(embd_s[:,:1])
         #make sure for t = 0, h_0 is all zeros
-        h_pred[timesteps == 0] = torch.ones_like(h_pred[0,0])*0.5
-        h_0 = h_pred[:,:1]
-        h_0[h_0 <= 0] = h_0[h_0 <= 0].sigmoid()
+        h_0 = g(h_pred)
         h_0 = h_0.chunk(len(self.blocks),dim = -1)
-        for block in self.blocks:
-            h, h_0 = block(h,list(h_0))
+        for i , block in enumerate(self.blocks):
+            h = block(h,h_0[i])
         h_target = h_0
         # get h reshaped such that its size = (B x 3 x T x h_dim) and
         # h[:, 0, t] is conditioned on the input sequence s_0, R_0, a_0 ... s_t
@@ -129,8 +127,10 @@ class minGRU_Reinformer(nn.Module):
     
     def get_rtg(self, timestep, state):
         h = self.embed_state(state) + self.embed_timestep(timestep)
-        for block in self.blocks:
-            h = block.seq_forward(h)
+        h_0 = g(self.embed_h(h))
+        h_0 = h_0.chunk(len(self.blocks),dim = -1)
+        for i, block in enumerate(self.blocks):
+            h = block.seq_forward(h, h_0[i])
         return self.predict_rtg(h)
     
     def get_action(self, timestep, rtg):

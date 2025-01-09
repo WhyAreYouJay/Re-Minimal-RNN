@@ -75,9 +75,9 @@ class minLSTM(nn.Module):
             h =  self.down_projection(h_t)
         else:
             h = h_t
-        return self.drop_proj(h), h_t[:,2:-1:3]
+        return self.drop_proj(h)
     
-    def seq_forward(self, x_t : torch.Tensor):
+    def seq_forward(self, x_t : torch.Tensor, h_0 : torch.Tensor = None):
         # x: (1,1, hidden_size)
         # h_0: (1,1 hidden_size))
         f_t = torch.sigmoid(self.linear_f(x_t))
@@ -85,7 +85,10 @@ class minLSTM(nn.Module):
         tilde_h_t = g(self.linear_h(x_t))
         f_prime_t = f_t / (f_t + i_t)
         i_prime_t = i_t / (f_t + i_t)
-        h_t = f_prime_t * self.h_prev + i_prime_t * tilde_h_t
+        if h_0 is None:
+            h_t = f_prime_t * self.h_prev + i_prime_t * tilde_h_t
+        else:
+            h_t = f_prime_t * h_0 + i_prime_t * tilde_h_t
         self.h_prev = h_t.detach()
         return self.down_projection(h_t)
   
@@ -125,14 +128,14 @@ class minLSTMCell(Module):
     def forward(self,x, h_0s):
         if self.conv is not None:
             x = self.ln1(x + self.conv(x))
-        cell_out, h_0 = self.cell(x, h_0s[0])
+        cell_out= self.cell(x, h_0s)
         x = self.ln2(x + cell_out)
         if self.mlp is not None:
-            return self.ln3(x + self.mlp(x)), h_0s[1:] + [h_0]
+            return self.ln3(x + self.mlp(x))
         
-    def seq_forward(self,x):
+    def seq_forward(self,x, h_0 = None):
         if self.conv is not None:
             x = self.ln1(x + self.conv(x))
-        x = self.ln2(x + self.cell.seq_forward(x))
+        x = self.ln2(x + self.cell.seq_forward(x, h_0))
         if self.mlp is not None:
             return self.ln3(x + self.mlp(x))
