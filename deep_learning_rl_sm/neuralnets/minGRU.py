@@ -6,11 +6,11 @@ from torch import nn
 def g(x):
     return torch.where(x >= 0, x + 0.5, torch.sigmoid(x))
 
-
+#@torch.compile
 def log_g(x):
     return torch.where(x >= 0, (F.relu(x) + 0.5).log(), -F.softplus(-x))
 
-
+#@torch.compile
 def parallel_scan_log(log_coefficients, log_values):
     # log_coefficients: (batch_size, device, input_size)
     # log_values: (batch_size, device + 1, input_size)
@@ -19,12 +19,24 @@ def parallel_scan_log(log_coefficients, log_values):
     log_h = a_star + log_h0_plus_b_star
     return torch.exp(log_h)[:, 1:]
 
+class Conv1dLayer(Module):
+    def __init__(self, dim, kernel_size):
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.net = nn.Conv1d(dim, dim, kernel_size = kernel_size, groups = dim)
+    #@torch.compile()
+    def forward(self, x):
+        x = x.transpose(1, 2) # b n d -> b d n
+        x = F.pad(x, (self.kernel_size - 1, 0), value = 0.)
+        x = self.net(x)
+        return x.transpose(1, 2) # b d n -> b n d
+
 class minGRU(Module):
     def __init__(self, dim,batch_size, device, expansion_factor = 1., dropout = 0.):
         super().__init__()
         self.dim=dim
-        self.device = device
         self.exp_dim = int(dim * expansion_factor)
+        self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
         self.batch_size = batch_size
         self.f = Linear(dim, 2*self.exp_dim, device = device)
         self.drop_f = nn.Dropout(dropout)
@@ -51,35 +63,25 @@ class minGRU(Module):
         # by e.g. converting to log-values, summing and then exponentiating we achieve the same result as
         # multiplying the original values but with better numerical stability
     
-    def reset_h_prev(self):
-        self.h_prev = g(torch.zeros((1,1,self.exp_dim),device=self.device))
+    def eval_mode(self):
+        self.log_h = log_g(torch.zeros((1, 1, self.exp_dim), device = self.log_h.device))
+        
+    def train_mode(self):
+        self.log_h = log_g(torch.zeros((self.batch_size, 1, self.exp_dim), device = self.log_h.device))
     
-    
-    def forward(self, x:torch.Tensor, h_0:torch.Tensor):
+    #@torch.compile
+    def forward(self, x:torch.Tensor, h0=None):
         # x: (batch_size, seq_len, hidden_size)
         # h_0: (batch_size, 1, hidden_size)
-        k,h_x = self.f(x).chunk(2,dim = -1)
+        k,h_x = self.drop_f(self.f(x)).chunk(2,dim = -1)
         log_z = -F.softplus(-k)
         log_coeffs = -F.softplus(k)
         log_tilde_h = log_g(h_x)
-        h_t = parallel_scan_log(log_coeffs, torch.cat([h_0.log(),log_tilde_h + log_z], dim=1))
         if self.down_projection is not None:
-            h =  self.down_projection(h_t)
-        return self.drop_proj(h)
-    
-    def seq_forward(self, x:torch.Tensor, h_0 : torch.Tensor = None):
-        # x: (1,1, hidden_size)
-        # h_0: (1,1 hidden_size)
-        k,h_x = self.f(x).chunk(2,dim = -1)
-        z = torch.sigmoid(k)
-        h_tilde = g(h_x)
-        if h_0 is None:
-            h_t = (1 - z) * self.h_prev + z * h_tilde
+            h =  self.down_projection(parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1)))
         else:
-            h_t = (1 - z) * h_0 + z * h_tilde
-        self.h_prev = h_t.detach()
-        return self.down_projection(h_t)
-
+            h =  parallel_scan_log(log_coeffs, torch.cat([self.log_h,log_tilde_h + log_z], dim=1))
+        return self.drop_proj(h)
         
     
 class CausalDepthWiseConv1d(Module):
@@ -91,7 +93,7 @@ class CausalDepthWiseConv1d(Module):
             nn.Conv1d(dim, dim, kernel_size = kernel_size, groups = dim, device = device),
             nn.Conv1d(dim, dim, kernel_size = 1, device = device)
         )
-    
+    #@torch.compile
     def forward(self, x):
         x = x.transpose(1, 2) # b n d -> b d n
         x = F.pad(x, (self.kernel_size - 1, 0), value = 0.)
@@ -99,9 +101,11 @@ class CausalDepthWiseConv1d(Module):
         return x.transpose(1, 2) # b d n -> b n d    
     
 class minGRUCell(Module):
+    """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
     def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, mult=4):
+        """This Version corresponds to what has been done in https://github.com/lucidrains/minGRU-pytorch/"""
         super().__init__()
-        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None 
+        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
         self.ln1 = torch.nn.LayerNorm(dim, device = device)
         self.cell = minGRU(dim,batch_size,device,expansion_factor, drop_p)
         self.ln2 = torch.nn.LayerNorm(dim, device = device)
@@ -110,21 +114,48 @@ class minGRUCell(Module):
                 nn.GELU(),#Reinformer uses GELU
                 nn.Linear(int(mult * dim), dim, device = device),
                 nn.Dropout(drop_p),
-            ) if mult != 0 else None
+            ) 
         self.ln3 = torch.nn.LayerNorm(dim, device = device)
-    
-    def forward(self,x, h_0s):
+    #@torch.compile
+    def forward(self,x):
+        residual = x
         if self.conv is not None:
-            x = self.ln1(x + self.conv(x))
-        cell_out = self.cell(x, h_0s)
-        x = self.ln2(x + cell_out)
-        if self.mlp is not None:
-            return self.ln3(x + self.mlp(x))
-        
-    def seq_forward(self,x, h_0 = None):
-        if self.conv is not None:
-            x = self.ln1(x + self.conv(x))
-        x = self.ln2(x + self.cell.seq_forward(x, h_0))
-        if self.mlp is not None:
-            return self.ln3(x + self.mlp(x))
+            x = self.conv(self.ln1(x)) + residual
+            residual = x
+        x = self.cell(self.ln2(x)) + residual
+        residual = x
+        return self.mlp(self.ln3(x)) + residual
 
+
+
+class minGRUBlock(Module):
+    """This Version corresponds to what has been done in https://github.com/cheind/mingru/blob/main/mingru/modules.py"""
+    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, n_layers, mult=4):
+        """This Version corresponds to what has been done in https://github.com/cheind/mingru/blob/main/mingru/modules.py"""
+        super().__init__()
+        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
+        self.cells = []
+        self.lns = []
+        for i in range(n_layers):
+            self.cells.append(minGRU(dim,batch_size,device,expansion_factor, drop_p))
+            self.lns.append(nn.LayerNorm(dim, device = device))
+        self.cells = nn.ModuleList(self.cells)
+        self.lns = nn.ModuleList(self.lns)
+        self.mlp = nn.Sequential(
+                nn.Linear(dim, int(mult * dim), device = device),
+                nn.GELU(),#Reinformer uses GELU
+                nn.Linear(int(mult * dim), dim, device = device),
+                nn.Dropout(drop_p),
+            ) 
+        self.ln3 = torch.nn.LayerNorm(dim, device = device)
+        self.ln1 = torch.nn.LayerNorm(dim, device = device)
+    #@torch.compile
+    def forward(self,x):
+        residual = x
+        if self.conv is not None:
+            x = self.conv(self.ln1(self.dim)(x)) + residual
+            residual = x
+        for i, cell in enumerate(self.cells):
+            x = cell(self.lns[i](x)) + residual
+        residual = x
+        return self.mlp(self.ln3(x))

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def evaluate(
+def Reinformer_eval(
     seed,
     model,
     device,
@@ -29,7 +29,6 @@ def evaluate(
     model.eval()
     with torch.no_grad():
         for i in range(num_eval_ep):
-            model.reset_h_prev()
             # zeros place holders
             actions = torch.zeros(
                 (eval_batch_size, max_test_ep_len, act_dim),
@@ -58,20 +57,46 @@ def evaluate(
                 states[0, t] = (states[0, t] - state_mean) / state_std
                 #print(f"State {t} : {states[0,t]}")
                 # predict rtg by model
-                rtg_pred = model.get_rtg(
-                    timesteps[:, t].unsqueeze(0),
-                    states[:, t].unsqueeze(0),
-                )
-                rtg = rtg_pred[0, -1].detach()
+                if t < context_len:
+                    #print(f"FW1<:{states[:, :context_len]}")
+                    rtg_preds, _ = model.forward(
+                        timesteps[:, :context_len],
+                        states[:, :context_len],
+                        actions[:, :context_len],
+                        returns_to_go[:, :context_len],
+                    )
+                    rtg = rtg_preds[0, t].detach()
+                else:
+                    #print(f"FW1>:{states[:, :context_len]}")
+                    rtg_preds, _  = model.forward(
+                        timesteps[:, t - context_len + 1 : t + 1],
+                        states[:, t - context_len + 1 : t + 1],
+                        actions[:, t - context_len + 1 : t + 1],
+                        returns_to_go[:, t - context_len + 1 : t + 1],
+                    )
+                    rtg = rtg_preds[0, -1].detach()
                 #print(f"RTG {t} : {rtg}")
                 # add rtg in placeholder
                 returns_to_go[0, t] = rtg
                 # take action by model
-                act_dist_preds = model.get_action(
-                    timesteps[:, t].unsqueeze(0),
-                    returns_to_go[:, t].unsqueeze(0),
-                )
-                act = act_dist_preds.mean.reshape(eval_batch_size, -1, act_dim)[0, -1].detach()
+                if t < context_len:
+                    #print(f"FW2<:{states[:, :context_len]}")
+                    _, act_dist_preds = model.forward(
+                        timesteps[:, :context_len],
+                        states[:, :context_len],
+                        actions[:, :context_len],
+                        returns_to_go[:, :context_len],
+                    )
+                    act = act_dist_preds.mean.reshape(eval_batch_size, -1, act_dim)[0, t].detach()
+                else:
+                    #print(f"FW2>:{states[:, :context_len]}")
+                    _, act_dist_preds = model.forward(
+                        timesteps[:, t - context_len + 1 : t + 1],
+                        states[:, t - context_len + 1 : t + 1],
+                        actions[:, t - context_len + 1 : t + 1],
+                        returns_to_go[:, t - context_len + 1 : t + 1],
+                    )
+                    act = act_dist_preds.mean.reshape(eval_batch_size, -1, act_dim)[0, -1].detach()
                 # env step
                 running_state, running_reward, done, _, _ = env.step(
                     act.cpu().numpy()
