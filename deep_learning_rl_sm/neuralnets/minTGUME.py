@@ -82,8 +82,8 @@ class minTGU_ME(nn.Module):
         self.batch_size = batch_size
 
         self.log_h = log_g(torch.zeros((batch_size, 1, self.exp_dim), device = device))
-        """self.c0_predictor = C0_Predictor(dim, self.exp_dim, device=device)
-        self.C_0 = g(torch.zeros((batch_size, 1, self.exp_dim), device=device))
+        self.c0_predictor = C0_Predictor(dim, self.exp_dim, device=device)
+        """self.C_0 = g(torch.zeros((batch_size, 1, self.exp_dim), device=device))
         self.log_C_0 = log_g(torch.zeros((batch_size, 1, self.exp_dim), device=device))"""
         
         # A single linear layer to project the input `x` to get all 6 gate components.
@@ -181,7 +181,7 @@ class minTGU_ME(nn.Module):
         # --- Core Recurrence ---
         # Solve for the cell state C across the sequence in parallel
         # The result C is returned in normal space
-        C = parallel_scan_log(log_t_mult, torch.cat([self.log_h, log_t_add], dim=1))
+        C = parallel_scan_log(log_t_mult, torch.cat([log_g(self.c0_predictor(x)), log_t_add], dim=1))
         
         # --- Final State Calculations ---
         # Get log(tanh(C)) for use in h and m calculations
@@ -277,11 +277,28 @@ class minTGU_ME_Block(Module):
     """
     def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, n_layers, mult=4):
         super().__init__()
-        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None
+        self.dim = dim
         self.layers = nn.ModuleList([
             minTGU_MECell(dim, drop_p, kernel_size, expansion_factor, device, conv, mult)
             for _ in range(n_layers)
         ])
+        super().__init__()
+        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None #Conv1dLayer(dim,kernel_size)
+        self.cells = []
+        self.lns = []
+        for i in range(n_layers):
+            self.cells.append(minTGU_ME(dim,batch_size,device,expansion_factor, drop_p))
+            self.lns.append(nn.LayerNorm(dim, device = device))
+        self.cells = nn.ModuleList(self.cells)
+        self.lns = nn.ModuleList(self.lns)
+        self.mlp = nn.Sequential(
+                nn.Linear(dim, int(mult * dim), device = device),
+                nn.GELU(),#Reinformer uses GELU
+                nn.Linear(int(mult * dim), dim, device = device),
+                nn.Dropout(drop_p),
+            ) 
+        self.ln3 = torch.nn.LayerNorm(dim, device = device)
+        self.ln1 = torch.nn.LayerNorm(dim, device = device)
         
     def reset(self):
         for l in self.layers:
@@ -303,10 +320,14 @@ class minTGU_ME_Block(Module):
                 - all_log_c_finals (List[Tensor]): A list of final cell states from each layer,
                                                    to be passed as `c0s` to the next chunk.
         """
-        for i, layer in enumerate(self.layers):
-            # Pass the input x and the initial state for the current layer
-            x, m = layer(x)
-        return x, m
+        residual = x
+        if self.conv is not None:
+            x = self.conv(self.ln1(self.dim)(x)) + residual
+            residual = x
+        for i, cell in enumerate(self.cells):
+            x = cell(self.lns[i](x)) + residual
+        residual = x
+        return self.mlp(self.ln3(x))
     
     def step(self, x_t):
         """
