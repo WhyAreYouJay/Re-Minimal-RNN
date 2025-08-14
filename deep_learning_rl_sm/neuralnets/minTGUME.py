@@ -75,7 +75,7 @@ class minTGU_ME(nn.Module):
     """
     A parallel implementation of the TGU-ME architecture, inspired by minLSTM.
     """
-    def __init__(self, dim, batch_size, device, expansion_factor=2., dropout=0.):
+    def __init__(self, dim,batch_size, device, expansion_factor = 1., dropout = 0.):
         super(minTGU_ME, self).__init__()
         self.dim = dim
         self.exp_dim = int(dim * expansion_factor)
@@ -227,11 +227,11 @@ class minTGU_MECell(Module):
     It includes optional causal convolution, layer normalization, residual connections,
     and a final MLP layer.
     """
-    def __init__(self, dim, drop_p, kernel_size, expansion_factor, batch_size, device, conv, mult=4):
+    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, mult=4):
         super().__init__()
         self.conv = CausalDepthWiseConv1d(dim, kernel_size, device=device) if conv else None
         self.ln1 = torch.nn.LayerNorm(dim, device=device)
-        self.cell = minTGU_ME(dim, batch_size, device, expansion_factor, drop_p)
+        self.cell = minTGU_ME(dim,batch_size,device,expansion_factor, drop_p)
         self.ln2 = torch.nn.LayerNorm(dim, device=device)
         
         self.hm_projection = nn.Linear(dim * 2, dim, device=device)
@@ -275,8 +275,9 @@ class minTGU_ME_Block(Module):
     the passing of states for sequential chunk processing.
     This is the main entry point for using the model.
     """
-    def __init__(self, n_layers, dim, drop_p, kernel_size, expansion_factor, device, conv, mult=4):
+    def __init__(self,dim,drop_p,kernel_size,expansion_factor,batch_size,device, conv, n_layers, mult=4):
         super().__init__()
+        self.conv = CausalDepthWiseConv1d(dim, kernel_size, device = device) if conv else None
         self.layers = nn.ModuleList([
             minTGU_MECell(dim, drop_p, kernel_size, expansion_factor, device, conv, mult)
             for _ in range(n_layers)
