@@ -258,7 +258,7 @@ class minTGU_MECell(Module):
 
         # 2. Core TGU-ME Cell Block
         # The TGU-ME cell returns (h, m). We combine them with a linear projection.
-        h, m = self.cell(self.ln2(x))
+        h = self.cell(self.ln2(x))
         """combined_hm = torch.cat([h, m], dim=-1)
         projected_hm = self.hm_projection(combined_hm)
         x = projected_hm + residual
@@ -266,7 +266,7 @@ class minTGU_MECell(Module):
 
         # 3. Final MLP Block
         x = self.mlp(self.ln3(h)) + residual
-        return x, m
+        return x
 
 
 class minTGU_ME_Block(Module):
