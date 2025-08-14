@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from deep_learning_rl_sm.neuralnets.minGRU import minGRUCell, minGRUBlock
 from deep_learning_rl_sm.neuralnets.minLSTM import minLSTMCell, minLSTMBlock
+from deep_learning_rl_sm.neuralnets.minTGUME import minTGU_MECell, minTGU_ME_Block
 from deep_learning_rl_sm.neuralnets.nets import Actor
 
 
@@ -38,12 +39,12 @@ class minGRU_Reinformer(nn.Module):
         if not stacked:
             self.blocks = [  # Consider trying BlockV2
                 minGRUCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                        conv=conv, mult = mult) if block_type == "mingru" else minLSTMCell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                        conv=conv, mult = mult) if block_type == "mingru" else minTGU_MECell(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
                         conv=conv, mult = mult)
                 for _ in range(n_layers)]
         else:
             self.blocks = [minGRUBlock(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
-                        conv=conv, n_layers=n_layers, mult = mult) if block_type == "mingru" else minLSTMBlock(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
+                        conv=conv, n_layers=n_layers, mult = mult) if block_type == "mingru" else minTGU_ME_Block(self.h_dim, drop_p, kernel_size, expansion_factor, batch_size=batch_size, device=device,
                         conv=conv, n_layers=n_layers, mult = mult)]
         
         self.min_gru_stacked = nn.Sequential(*self.blocks)
